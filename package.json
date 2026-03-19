@@ -1,0 +1,33 @@
+{
+  "name": "@bifrost-io/slpx-cli",
+  "version": "0.2.0",
+  "description": "Bifrost SLPx liquid staking CLI — all vTokens",
+  "type": "module",
+  "bin": {
+    "slpx-cli": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
+    "dev": "bun src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "viem": "^2.46.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "@types/bun": "latest"
+  }
+}
