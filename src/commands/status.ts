@@ -45,14 +45,23 @@ export function statusCmd(program: Command) {
         });
         const [claimable, , pending] = result as [bigint, bigint, bigint];
 
+        let hint: string;
+        if (claimable > 0n && pending > 0n) {
+          hint = `${formatEther(claimable)} ETH ready to claim (run: slpx claim). ${formatEther(pending)} ETH still processing (typically 1-3 days).`;
+        } else if (claimable > 0n) {
+          hint = "ETH is ready to claim. Run: slpx claim";
+        } else if (pending > 0n) {
+          hint = `${formatEther(pending)} ETH is processing. Typically 1-3 days for ETH redemptions.`;
+        } else {
+          hint = "No claimable or pending ETH.";
+        }
+
         print({
           address: formatAddress(address),
           claimableEth: `${formatEther(claimable)} ETH`,
           pendingAmount: `${formatEther(pending)} ETH`,
           chain: chain.name,
-          hint: claimable > 0n
-            ? "ETH is ready to claim. Run: slpx claim"
-            : "No claimable ETH. Redemption may still be processing.",
+          hint,
         }, opts.json);
       } catch (e) {
         printError("RPC_ERROR", `Failed to query status: ${(e as Error).message}`, opts.json);

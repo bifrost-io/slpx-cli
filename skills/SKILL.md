@@ -31,16 +31,16 @@ CLI tool for Bifrost liquid staking. All on-chain interactions are handled inter
 Before running any command, check if the CLI is available:
 
 ```bash
-node ~/slpx-cli/dist/index.js --version
+npx -y @bifrost-io/slpx-cli --version
 ```
 
-If the command fails, clone, install and build:
+If the above fails (package not yet published), install manually:
 
 ```bash
 git clone https://github.com/bifrost-io/slpx-cli.git ~/slpx-cli && cd ~/slpx-cli && npm install && npm run build
 ```
 
-Run commands with: `node ~/slpx-cli/dist/index.js <command> [args] [options]`
+Then use `node ~/slpx-cli/dist/index.js` instead of `npx -y @bifrost-io/slpx-cli` in all commands below.
 
 ## Security Rules
 
@@ -75,34 +75,36 @@ Run commands with: `node ~/slpx-cli/dist/index.js <command> [args] [options]`
 Query exchange rate. Default: 1 unit of base asset.
 
 ```bash
-node ~/slpx-cli/dist/index.js rate --json
-node ~/slpx-cli/dist/index.js rate 10 --json
-node ~/slpx-cli/dist/index.js rate --token vDOT --json
-node ~/slpx-cli/dist/index.js rate 100 --token vKSM --json
+npx -y @bifrost-io/slpx-cli rate --json
+npx -y @bifrost-io/slpx-cli rate 10 --json
+npx -y @bifrost-io/slpx-cli rate --token vDOT --json
+npx -y @bifrost-io/slpx-cli rate 100 --token vKSM --json
 ```
 
 Output fields: `input`, `output`, `rate`, `reverseRate`, `token`, `source`
 
 #### `slpx apy`
 
-Query staking APY (base + reward).
+Query staking APY (base + reward). Add `--lp` to also show LP pool yields from DeFiLlama.
 
 ```bash
-node ~/slpx-cli/dist/index.js apy --json
-node ~/slpx-cli/dist/index.js apy --token vDOT --json
-node ~/slpx-cli/dist/index.js apy --token vMANTA --json
+npx -y @bifrost-io/slpx-cli apy --json
+npx -y @bifrost-io/slpx-cli apy --token vDOT --json
+npx -y @bifrost-io/slpx-cli apy --token vMANTA --json
+npx -y @bifrost-io/slpx-cli apy --token vDOT --lp --json
 ```
 
 Output fields: `token`, `totalApy`, `baseApy`, `rewardApy`
+With `--lp`: adds `lpPools` array — each entry has `symbol`, `project`, `chain`, `lpApy`, `tvl`
 
 #### `slpx info`
 
 Protocol overview: rate, APY, TVL, holders. For vETH also shows contract, chains, paused status.
 
 ```bash
-node ~/slpx-cli/dist/index.js info --json
-node ~/slpx-cli/dist/index.js info --token vDOT --json
-node ~/slpx-cli/dist/index.js info --token vASTR --json
+npx -y @bifrost-io/slpx-cli info --json
+npx -y @bifrost-io/slpx-cli info --token vDOT --json
+npx -y @bifrost-io/slpx-cli info --token vASTR --json
 ```
 
 Output fields: `protocol`, `token`, `rate`, `totalApy`, `tvl`, `totalStaked`, `totalSupply`, `holders`
@@ -112,43 +114,50 @@ vETH extra: `contract`, `chains`, `paused`
 
 #### `slpx balance <address>`
 
-Query vETH balance and ETH equivalent.
+Query vETH balance and ETH equivalent. Supports comma-separated addresses for batch query.
 
 ```bash
-node ~/slpx-cli/dist/index.js balance 0x742d...bD18 --json
-node ~/slpx-cli/dist/index.js balance 0x742d...bD18 --chain base --json
+npx -y @bifrost-io/slpx-cli balance 0x742d...bD18 --json
+npx -y @bifrost-io/slpx-cli balance 0x742d...bD18 --chain base --json
+npx -y @bifrost-io/slpx-cli balance 0xAddr1,0xAddr2,0xAddr3 --json
 ```
 
-Output fields: `address`, `vethBalance`, `ethValue`, `chain`
+Single output fields: `address`, `vethBalance`, `ethValue`, `chain`
+Batch output fields: `results` (array of `{address, vethBalance, ethValue}`), `chain`
 
 #### `slpx status <address>`
 
 Query redemption queue status.
 
 ```bash
-node ~/slpx-cli/dist/index.js status 0x742d...bD18 --json
+npx -y @bifrost-io/slpx-cli status 0x742d...bD18 --json
 ```
 
-Output fields: `address`, `claimableEth`, `pendingAmount`, `chain`, `hint`
+Output fields: `address`, `claimableEth`, `pendingAmount`, `chain`, `hint` (includes time estimate when pending)
 
 #### `slpx mint <amount>`
 
-Stake ETH to receive vETH.
+Stake ETH to receive vETH. Add `--weth` to deposit WETH instead of native ETH.
 
 ```bash
-node ~/slpx-cli/dist/index.js mint 0.1 --json --dry-run
-node ~/slpx-cli/dist/index.js mint 0.5 --chain base --json
+npx -y @bifrost-io/slpx-cli mint 0.1 --json --dry-run
+npx -y @bifrost-io/slpx-cli mint 0.5 --chain base --json
+npx -y @bifrost-io/slpx-cli mint 0.1 --weth --json --dry-run
+npx -y @bifrost-io/slpx-cli mint 0.5 --weth --chain arbitrum --json
 ```
 
-Output fields (unsigned): `action`, `input`, `expected`, `mode`, `unsigned.to`, `unsigned.value`, `unsigned.data`, `unsigned.chainId`
-Output fields (signed): `action`, `input`, `expected`, `from`, `txHash`, `explorer`
+Native ETH output (unsigned): `action`, `input`, `expected`, `mode`, `unsigned.to`, `unsigned.value`, `unsigned.data`, `unsigned.chainId`
+WETH output (unsigned): `action:mint-weth`, `input`, `expected`, `mode`, `wethAddress`, `steps` (array: step 1 Approve, step 2 Deposit)
+Output (signed): `action`, `input`, `expected`, `from`, `txHash`, `explorer`
+
+WETH addresses per chain: Ethereum `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`, Arbitrum `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1`, Base/Optimism `0x4200000000000000000000000000000000000006`
 
 #### `slpx redeem <amount>`
 
 Redeem vETH (NOT instant — enters processing queue).
 
 ```bash
-node ~/slpx-cli/dist/index.js redeem 0.1 --json --dry-run --address 0x742d...
+npx -y @bifrost-io/slpx-cli redeem 0.1 --json --dry-run --address 0x742d...
 ```
 
 #### `slpx claim`
@@ -156,7 +165,7 @@ node ~/slpx-cli/dist/index.js redeem 0.1 --json --dry-run --address 0x742d...
 Claim completed ETH redemptions.
 
 ```bash
-node ~/slpx-cli/dist/index.js claim --json --dry-run --address 0x742d...
+npx -y @bifrost-io/slpx-cli claim --json --dry-run --address 0x742d...
 ```
 
 ### Global Options
@@ -173,34 +182,42 @@ node ~/slpx-cli/dist/index.js claim --json --dry-run --address 0x742d...
 | Option | Description |
 |--------|-------------|
 | `--dry-run` | Output unsigned tx without sending |
+| `--weth` | Use WETH instead of native ETH (mint only) |
+| `--lp` | Show LP pool yields from DeFiLlama (apy only) |
 | `--address <addr>` | Specify wallet address (for redeem/claim without key file) |
 
 ## Workflows
 
-### Compare All Token APYs
+### Compare Token APYs with LP Pools
 
 ```bash
-node ~/slpx-cli/dist/index.js apy --token vETH --json
-node ~/slpx-cli/dist/index.js apy --token vDOT --json
-node ~/slpx-cli/dist/index.js apy --token vKSM --json
+npx -y @bifrost-io/slpx-cli apy --token vDOT --lp --json
+npx -y @bifrost-io/slpx-cli apy --token vETH --lp --json
+npx -y @bifrost-io/slpx-cli apy --token vKSM --json
+```
+
+### Batch Balance Check
+
+```bash
+npx -y @bifrost-io/slpx-cli balance 0xAddr1,0xAddr2,0xAddr3 --json
 ```
 
 ### Research → Stake (vETH)
 
 ```bash
-node ~/slpx-cli/dist/index.js info --json
-node ~/slpx-cli/dist/index.js rate 1 --json
-node ~/slpx-cli/dist/index.js apy --json
-node ~/slpx-cli/dist/index.js mint 0.5 --json
+npx -y @bifrost-io/slpx-cli info --json
+npx -y @bifrost-io/slpx-cli rate 1 --json
+npx -y @bifrost-io/slpx-cli apy --json
+npx -y @bifrost-io/slpx-cli mint 0.5 --json
 ```
 
 ### Redeem → Claim (vETH)
 
 ```bash
-node ~/slpx-cli/dist/index.js balance 0x... --json
-node ~/slpx-cli/dist/index.js redeem 1.0 --json
-node ~/slpx-cli/dist/index.js status 0x... --json
-node ~/slpx-cli/dist/index.js claim --json
+npx -y @bifrost-io/slpx-cli balance 0x... --json
+npx -y @bifrost-io/slpx-cli redeem 1.0 --json
+npx -y @bifrost-io/slpx-cli status 0x... --json
+npx -y @bifrost-io/slpx-cli claim --json
 ```
 
 ## Error Handling
@@ -224,8 +241,12 @@ All errors return structured JSON with `error`, `code`, and `message` fields:
 
 ## Notes
 
-1. Always use `--json` flag when calling from an agent for structured output.
+1. Always use `--json` flag when calling from an agent for structured output. Without `--json`, output is human-readable text.
 2. Query commands (rate, apy, info) support all 10 vTokens via Bifrost API.
 3. On-chain commands (balance, mint, redeem, claim, status) only support vETH on EVM chains.
 4. Redemption is NOT instant — `redeem` enters a queue processed by Bifrost cross-chain mechanism.
 5. vETH contract address is the same on all EVM chains: `0xc3997ff81f2831929499c4eE4Ee4e0F08F42D4D8`
+6. RPC endpoints have automatic fallback — if the primary RPC fails, the CLI switches to a backup RPC automatically.
+7. `--weth` mints vETH from WETH (ERC-20) instead of native ETH. In unsigned mode, outputs two steps: Approve + Deposit.
+8. `--lp` flag on `apy` fetches LP pool data from DeFiLlama for the selected vToken (top pools by TVL).
+9. Balance command accepts comma-separated addresses for batch query: `balance addr1,addr2,addr3`

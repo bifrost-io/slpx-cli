@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { fetchTokenStats, deriveRate } from "../src/lib/api";
+import { fetchTokenStats, deriveRate, fetchLpPools } from "../src/lib/api";
 import { VALID_TOKENS } from "../src/lib/tokens";
 
 describe("Bifrost API", () => {
@@ -36,5 +36,22 @@ describe("Bifrost API", () => {
     } catch (e) {
       expect((e as Error).message).toContain("Missing NONEXISTENT");
     }
+  });
+
+  test("fetchLpPools returns pools for vDOT", async () => {
+    const pools = await fetchLpPools("vDOT");
+    expect(Array.isArray(pools)).toBe(true);
+    if (pools.length > 0) {
+      expect(pools[0].symbol).toBeDefined();
+      expect(pools[0].project).toBeDefined();
+      expect(pools[0].tvl).toBeGreaterThan(0);
+      expect(typeof pools[0].apy).toBe("number");
+    }
+  });
+
+  test("fetchLpPools returns empty for rare token", async () => {
+    const pools = await fetchLpPools("NONEXISTENT_TOKEN_XYZ");
+    expect(Array.isArray(pools)).toBe(true);
+    expect(pools.length).toBe(0);
   });
 });

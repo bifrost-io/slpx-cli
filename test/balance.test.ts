@@ -28,4 +28,20 @@ describe("slpx balance", () => {
     expect(data.error).toBe(true);
     expect(data.code).toBe("UNSUPPORTED_TOKEN");
   });
+
+  test("batch: returns results for multiple addresses", async () => {
+    const ADDR2 = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+    const data = await runJson(`balance ${ADDR},${ADDR2}`);
+    expect(data.results).toBeDefined();
+    expect(data.results.length).toBe(2);
+    expect(data.results[0].vethBalance).toContain("vETH");
+    expect(data.results[1].vethBalance).toContain("vETH");
+    expect(data.chain).toBe("ethereum");
+  });
+
+  test("batch: rejects if any address is invalid", async () => {
+    const data = await runJson(`balance ${ADDR},0xinvalid`);
+    expect(data.error).toBe(true);
+    expect(data.code).toBe("INVALID_ADDRESS");
+  });
 });

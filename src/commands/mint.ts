@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
 import { resolveChain, VETH_ADDRESS } from "../lib/chains.js";
 import { resolveToken } from "../lib/tokens.js";
-import { vethAbi } from "../lib/abi.js";
+import { vethAbi, erc20Abi } from "../lib/abi.js";
 import { print, printError } from "../lib/output.js";
 import { formatEther, parseEther, encodeFunctionData } from "viem";
 import { loadWallet, formatAddress } from "../lib/wallet.js";
@@ -10,9 +10,10 @@ import { loadWallet, formatAddress } from "../lib/wallet.js";
 export function mintCmd(program: Command) {
   program
     .command("mint <amount>")
-    .description("Stake ETH to mint vETH (EVM only)")
+    .description("Stake ETH/WETH to mint vETH (EVM only)")
     .option("--dry-run", "output unsigned tx without sending")
-    .action(async (amount: string, cmdOpts: { dryRun?: boolean }) => {
+    .option("--weth", "use WETH instead of native ETH")
+    .action(async (amount: string, cmdOpts: { dryRun?: boolean; weth?: boolean }) => {
       const opts = program.opts();
 
       let token;
@@ -61,8 +62,11 @@ export function mintCmd(program: Command) {
           });
         }
 
-        const wallet = loadWallet();
+        if (cmdOpts.weth) {
+          return mintWithWeth(chain, client, weiAmount, expectedVeth, amount, opts, cmdOpts);
+        }
 
+        const wallet = loadWallet();
         if (!wallet || cmdOpts.dryRun) {
           const data = encodeFunctionData({ abi: vethAbi, functionName: "depositWithETH" });
           print({
@@ -99,4 +103,75 @@ export function mintCmd(program: Command) {
         printError("TX_ERROR", `Mint failed: ${(e as Error).message}`, opts.json);
       }
     });
+}
+
+async function mintWithWeth(
+  chain: ReturnType<typeof resolveChain>,
+  client: any,
+  weiAmount: bigint,
+  expectedVeth: bigint,
+  amount: string,
+  opts: any,
+  cmdOpts: { dryRun?: boolean },
+) {
+  const wallet = loadWallet();
+  const wethAddr = chain.weth as `0x${string}`;
+
+  if (!wallet || cmdOpts.dryRun) {
+    const approveData = encodeFunctionData({
+      abi: erc20Abi, functionName: "approve",
+      args: [VETH_ADDRESS, weiAmount],
+    });
+    const depositData = encodeFunctionData({
+      abi: vethAbi, functionName: "deposit",
+      args: [weiAmount, "0x0000000000000000000000000000000000000000"],
+    });
+    print({
+      action: "mint-weth",
+      input: `${amount} WETH`,
+      expected: `${formatEther(expectedVeth)} vETH`,
+      mode: "unsigned",
+      wethAddress: wethAddr,
+      steps: [
+        { step: 1, desc: "Approve WETH spending", to: wethAddr, data: approveData, chainId: chain.chainId },
+        { step: 2, desc: "Deposit WETH for vETH", to: VETH_ADDRESS, value: "0", data: depositData, chainId: chain.chainId },
+      ],
+    }, opts.json);
+    return;
+  }
+
+  const walletClient = getWalletClient(chain, wallet);
+  const receiver = wallet.address as `0x${string}`;
+
+  const allowance = await client.readContract({
+    address: wethAddr, abi: erc20Abi,
+    functionName: "allowance", args: [receiver, VETH_ADDRESS],
+  });
+
+  if ((allowance as bigint) < weiAmount) {
+    const approveTx = await walletClient.writeContract({
+      address: wethAddr, abi: erc20Abi,
+      functionName: "approve", args: [VETH_ADDRESS, weiAmount],
+    });
+    print({
+      action: "mint-weth-approve",
+      desc: "WETH spending approved",
+      txHash: approveTx,
+      explorer: `${chain.explorer}/tx/${approveTx}`,
+    }, opts.json);
+  }
+
+  const txHash = await walletClient.writeContract({
+    address: VETH_ADDRESS, abi: vethAbi,
+    functionName: "deposit", args: [weiAmount, receiver],
+  });
+
+  print({
+    action: "mint-weth",
+    input: `${amount} WETH`,
+    expected: `${formatEther(expectedVeth)} vETH`,
+    from: formatAddress(wallet.address),
+    txHash,
+    explorer: `${chain.explorer}/tx/${txHash}`,
+  }, opts.json);
 }

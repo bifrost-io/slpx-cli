@@ -155,6 +155,29 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
   - [ ] Agent queries multiple tokens
   - [ ] Identifies the highest APY token
 
+### T3.7 — LP pool APY (EN)
+
+- **User Input**: `What are the LP pool yields for vDOT? I want to compare staking vs LP.`
+- **Expected Behavior**: Agent runs `slpx apy --token vDOT --lp --json` and presents both staking APY and LP pools.
+- **Pass Criteria**:
+  - [ ] Command contains `apy --token vDOT --lp --json`
+  - [ ] Output shows staking APY + LP pool list
+  - [ ] LP pool data includes symbol, project, APY, TVL
+
+### T3.8 — LP pool APY (CN)
+
+- **User Input**: `查一下vDOT的LP池子收益率，和纯质押对比一下`
+- **Pass Criteria**:
+  - [ ] Command contains `--lp`
+  - [ ] Shows both staking and LP APY data
+
+### T3.9 — LP pool for vETH (EN)
+
+- **User Input**: `Any liquidity pools with good yields for vETH?`
+- **Pass Criteria**:
+  - [ ] Command contains `apy --lp`
+  - [ ] Shows LP pool list if available
+
 ---
 
 ## 4. Query: Protocol Info (Multi-token)
@@ -222,6 +245,28 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
 - **Pass Criteria**:
   - [ ] Command contains `--chain base`
 
+### T5.5 — Batch balance (EN)
+
+- **User Input**: `Check vETH balance for these addresses: 0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF, 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+- **Expected Behavior**: Agent runs balance with comma-separated addresses.
+- **Pass Criteria**:
+  - [ ] Command contains both addresses separated by comma
+  - [ ] Output contains `results` array with balances for each address
+
+### T5.6 — Batch balance (CN)
+
+- **User Input**: `同时查一下这两个地址的vETH余额：0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF, 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+- **Pass Criteria**:
+  - [ ] Agent uses comma-separated addresses
+  - [ ] Shows results for both
+
+### T5.7 — Batch balance on different chain (EN)
+
+- **User Input**: `Check vETH balance on Arbitrum for 0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF and 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+- **Pass Criteria**:
+  - [ ] Command contains `--chain arbitrum`
+  - [ ] Both addresses are queried
+
 ---
 
 ## 6. Query: Redemption Status
@@ -238,6 +283,20 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
 - **User Input**: `查一下 0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF 的赎回状态`
 - **Pass Criteria**:
   - [ ] Agent runs `status` with the address
+
+### T6.3 — Status time estimate (EN)
+
+- **User Input**: `How long until my redeemed ETH is claimable? Address: 0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF`
+- **Expected Behavior**: Agent runs `status`, hint field shows time estimate (e.g., "typically 1-3 days").
+- **Pass Criteria**:
+  - [ ] Agent runs `status` with the address
+  - [ ] Agent mentions approximate wait time based on hint field
+
+### T6.4 — Status time estimate (CN)
+
+- **User Input**: `我赎回的ETH还要多久才能领？地址 0x3B8B3aE1916a0ab93fB1f454a498109b6cf5f9BF`
+- **Pass Criteria**:
+  - [ ] Agent checks status and mentions time estimate
 
 ---
 
@@ -282,6 +341,36 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
 - **User Input**: `质押1个ETH能拿到多少vETH？先别发交易，我只是看看`
 - **Pass Criteria**:
   - [ ] Uses `--dry-run`
+
+### T7.7 — WETH mint dry-run (EN)
+
+- **User Input**: `I want to use WETH to mint vETH, 0.1 WETH. Show me the transaction data.`
+- **Expected Behavior**: Agent runs `slpx mint 0.1 --weth --dry-run --json`.
+- **Pass Criteria**:
+  - [ ] Command contains `mint 0.1 --weth --dry-run`
+  - [ ] Output has `action: "mint-weth"` and `steps` array (Approve + Deposit)
+  - [ ] Shows the WETH address
+
+### T7.8 — WETH mint dry-run (CN)
+
+- **User Input**: `我想用WETH来mint vETH，0.1个WETH，先看交易数据`
+- **Pass Criteria**:
+  - [ ] Command contains `--weth` and `--dry-run`
+
+### T7.9 — WETH mint on Arbitrum (EN)
+
+- **User Input**: `Mint vETH from WETH on Arbitrum, 0.05 WETH, dry run`
+- **Pass Criteria**:
+  - [ ] Command contains `--weth --chain arbitrum`
+  - [ ] WETH address = `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1`
+
+### T7.10 — WETH vs ETH clarification (EN)
+
+- **User Input**: `Stake my ETH on Bifrost`
+- **Expected Behavior**: Agent asks amount. Does NOT assume `--weth` unless user explicitly mentions WETH.
+- **Pass Criteria**:
+  - [ ] Default mint uses native ETH (no `--weth`)
+  - [ ] Agent asks for amount
 
 ---
 
@@ -732,11 +821,11 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
 |----------|-------|-----|
 | Exchange Rate (vETH) | 6 | T1.1 – T1.6 |
 | Exchange Rate (Multi-token) | 6 | T2.1 – T2.6 |
-| APY (Multi-token) | 6 | T3.1 – T3.6 |
+| APY (Multi-token + LP) | 9 | T3.1 – T3.9 |
 | Protocol Info (Multi-token) | 5 | T4.1 – T4.5 |
-| Balance (vETH) | 4 | T5.1 – T5.4 |
-| Redemption Status | 2 | T6.1 – T6.2 |
-| Mint (Stake) | 6 | T7.1 – T7.6 |
+| Balance (vETH + Batch) | 7 | T5.1 – T5.7 |
+| Redemption Status + Time | 4 | T6.1 – T6.4 |
+| Mint (Stake + WETH) | 10 | T7.1 – T7.10 |
 | Redeem (Unstake) | 3 | T8.1 – T8.3 |
 | Claim | 2 | T9.1 – T9.2 |
 | Multi-chain | 6 | T10.1 – T10.6 |
@@ -747,4 +836,4 @@ echo "0xf3028f4ab05dc05cb89d51e1f3f00972ba5df510b295122cb4790522acaf4773" > ~/.b
 | Error Handling | 12 | T15.1 – T15.12 |
 | Ambiguity (Clarification) | 14 | T16.1 – T16.14 |
 | Edge Cases | 7 | T17.1 – T17.7 |
-| **Total** | **97** | |
+| **Total** | **109** | |
