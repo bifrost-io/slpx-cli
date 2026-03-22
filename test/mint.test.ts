@@ -34,4 +34,23 @@ describe("slpx mint", () => {
     expect(data.error).toBe(true);
     expect(data.code).toBe("UNSUPPORTED_TOKEN");
   });
+
+  test("--weth dry-run produces two-step unsigned tx", async () => {
+    const data = await runJson("mint 0.01 --dry-run --weth");
+    expect(data.action).toBe("mint-weth");
+    expect(data.input).toBe("0.01 WETH");
+    expect(data.expected).toContain("vETH");
+    expect(data.mode).toBe("unsigned");
+    expect(data.wethAddress).toBeDefined();
+    expect(data.steps).toBeDefined();
+    expect(data.steps.length).toBe(2);
+    expect(data.steps[0].desc).toContain("Approve");
+    expect(data.steps[1].desc).toContain("Deposit");
+  });
+
+  test("--weth on arbitrum has correct WETH address", async () => {
+    const data = await runJson("mint 0.01 --dry-run --weth --chain arbitrum");
+    expect(data.wethAddress).toBe("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1");
+    expect(data.steps[1].chainId).toBe(42161);
+  });
 });
