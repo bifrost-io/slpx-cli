@@ -44,15 +44,31 @@ export const chains: Record<string, ChainConfig> = {
   },
 };
 
+function sanitize(input: string): string {
+  return input.replace(/[<>&"']/g, "");
+}
+
+export async function validateCustomRpc(chain: ChainConfig, opts: { rpc?: string }): Promise<void> {
+  if (!opts.rpc && !process.env.BIFROST_RPC_URL) return;
+  const res = await fetch(chain.rpc, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method: "eth_chainId", params: [], id: 1 }),
+    signal: AbortSignal.timeout(3000),
+  });
+  if (!res.ok) throw new Error(`RPC returned HTTP ${res.status}`);
+}
+
 export function resolveChain(opts: { chain?: string; rpc?: string }): ChainConfig {
   const name = opts.chain || process.env.BIFROST_CHAIN || "ethereum";
   const config = chains[name];
   if (!config) {
     const valid = Object.keys(chains).join(", ");
-    throw new Error(`Unknown chain "${name}". Valid: ${valid}`);
+    throw new Error(`Unknown chain "${sanitize(name)}". Valid: ${valid}`);
   }
   if (opts.rpc || process.env.BIFROST_RPC_URL) {
-    return { ...config, rpc: (opts.rpc || process.env.BIFROST_RPC_URL)! };
+    const customRpc = (opts.rpc || process.env.BIFROST_RPC_URL)!;
+    return { ...config, rpc: customRpc, fallbackRpc: customRpc };
   }
   return config;
 }
