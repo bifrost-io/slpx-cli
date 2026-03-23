@@ -96,7 +96,7 @@ npx -y @bifrost-io/slpx-cli apy --token vDOT --lp --json
 
 Output fields: `token`, `totalApy`, `baseApy`, `rewardApy`
 - `baseApy` = native staking yield from the underlying chain (e.g. Ethereum PoS rewards)
-- `rewardApy` = additional incentive from Bifrost BNC token farming
+- `rewardApy` = additional Bifrost protocol incentive (vETH rewards are in vDOT)
 - `totalApy` = baseApy + rewardApy
 
 With `--lp`: adds `lpPools` array — each entry has `symbol`, `project`, `chain`, `lpApy`, `tvl`
