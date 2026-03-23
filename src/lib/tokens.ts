@@ -17,12 +17,16 @@ export const VALID_TOKENS: TokenInfo[] = [
   { id: "vPHA",   baseAsset: "PHA",   evm: false },
 ];
 
+function sanitize(input: string): string {
+  return input.replace(/[<>&"']/g, "");
+}
+
 export function resolveToken(name: string): TokenInfo {
   const lower = name.toLowerCase();
   const found = VALID_TOKENS.find(t => t.id.toLowerCase() === lower);
   if (!found) {
     const valid = VALID_TOKENS.map(t => t.id).join(", ");
-    throw new Error(`Unknown token "${name}". Valid: ${valid}`);
+    throw new Error(`Unknown token "${sanitize(name)}". Valid: ${valid}`);
   }
   return found;
 }

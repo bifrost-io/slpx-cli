@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { fetchTokenStats, deriveRate } from "../lib/api.js";
 import { getPublicClient } from "../lib/client.js";
-import { resolveChain, VETH_ADDRESS } from "../lib/chains.js";
+import { resolveChain, validateCustomRpc, VETH_ADDRESS } from "../lib/chains.js";
 import { resolveToken } from "../lib/tokens.js";
 import { vethAbi } from "../lib/abi.js";
 import { print, printError } from "../lib/output.js";
@@ -21,8 +21,12 @@ export function infoCmd(program: Command) {
       }
 
       if (token.evm) {
-        try { resolveChain(opts); } catch (e) {
+        let chain;
+        try { chain = resolveChain(opts); } catch (e) {
           return printError("INVALID_CHAIN", (e as Error).message, opts.json);
+        }
+        try { await validateCustomRpc(chain, opts); } catch (e) {
+          return printError("RPC_ERROR", `Custom RPC unreachable: ${(e as Error).message}`, opts.json);
         }
       }
 

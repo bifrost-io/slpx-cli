@@ -95,6 +95,10 @@ npx -y @bifrost-io/slpx-cli apy --token vDOT --lp --json
 ```
 
 Output fields: `token`, `totalApy`, `baseApy`, `rewardApy`
+- `baseApy` = native staking yield from the underlying chain (e.g. Ethereum PoS rewards)
+- `rewardApy` = additional incentive from Bifrost BNC token farming
+- `totalApy` = baseApy + rewardApy
+
 With `--lp`: adds `lpPools` array — each entry has `symbol`, `project`, `chain`, `lpApy`, `tvl`
 
 #### `slpx info`
@@ -154,7 +158,9 @@ WETH addresses per chain: Ethereum `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`,
 
 #### `slpx redeem <amount>`
 
-Redeem vETH (NOT instant — enters processing queue).
+Redeem vETH (NOT instant — enters processing queue, typically 1-3 days).
+
+> **IMPORTANT**: Before executing a redeem, ALWAYS confirm with the user: show the amount, explain that redemption is NOT instant (enters a processing queue), and ask for explicit confirmation. Use `--dry-run` first to preview.
 
 ```bash
 npx -y @bifrost-io/slpx-cli redeem 0.1 --json --dry-run --address 0x742d...
@@ -236,8 +242,9 @@ All errors return structured JSON with `error`, `code`, and `message` fields:
 | `NOTHING_TO_CLAIM` | No completed redemptions to claim |
 | `NO_WALLET` | No key file and no --address provided |
 | `RPC_ERROR` | RPC connection failed |
-| `API_ERROR` | Bifrost API unavailable |
+| `API_ERROR` | Bifrost API unavailable or timed out |
 | `TX_ERROR` | Transaction execution failed |
+| `CLI_ERROR` | Missing argument or invalid option |
 
 ## Notes
 

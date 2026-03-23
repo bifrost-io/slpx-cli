@@ -130,8 +130,8 @@ bun test
 ### Current Results
 
 ```
-65 pass, 0 fail, 420 assertions
-Ran 65 tests across 15 files
+74 pass, 0 fail, 454 assertions
+Ran 74 tests across 15 files
 ```
 
 ## Project Structure
@@ -157,6 +157,26 @@ skill_cli_new/
 │   └── SKILL.md          # Agent skill file
 └── test/                 # Unit, integration, e2e tests
 ```
+
+## Agent Skill
+
+This CLI is designed to be used as an agent skill. The skill definition is in `skills/SKILL.md`.
+
+**For agents with npx** (recommended):
+
+```bash
+npx -y @bifrost-io/slpx-cli --version
+```
+
+**Manual installation** (if npm package is not available):
+
+```bash
+git clone https://github.com/bifrost-io/slpx-cli.git ~/slpx-cli
+cd ~/slpx-cli && npm install && npm run build
+node ~/slpx-cli/dist/index.js --version
+```
+
+Copy `skills/SKILL.md` to your agent's skill directory to enable the Bifrost SLPx skill.
 
 ## License
 

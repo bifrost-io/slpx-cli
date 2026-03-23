@@ -10,10 +10,15 @@ const viemChains: Record<number, Chain> = {
   42161: arbitrum,
 };
 
+function buildTransport(chain: ChainConfig) {
+  if (chain.rpc === chain.fallbackRpc) return http(chain.rpc);
+  return fallback([http(chain.rpc), http(chain.fallbackRpc)]);
+}
+
 export function getPublicClient(chain: ChainConfig) {
   return createPublicClient({
     chain: viemChains[chain.chainId],
-    transport: fallback([http(chain.rpc), http(chain.fallbackRpc)]),
+    transport: buildTransport(chain),
   });
 }
 
@@ -21,6 +26,6 @@ export function getWalletClient(chain: ChainConfig, account: PrivateKeyAccount) 
   return createWalletClient({
     account,
     chain: viemChains[chain.chainId],
-    transport: fallback([http(chain.rpc), http(chain.fallbackRpc)]),
+    transport: buildTransport(chain),
   });
 }
