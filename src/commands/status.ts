@@ -1,11 +1,15 @@
 import type { Command } from "commander";
-import { getPublicClient } from "../lib/client.js";
-import { resolveChain, VETH_ADDRESS } from "../lib/chains.js";
-import { resolveToken } from "../lib/tokens.js";
-import { vethAbi } from "../lib/abi.js";
-import { print, printError } from "../lib/output.js";
 import { formatEther } from "viem";
-import { formatAddress, isValidAddress, normalizeAddress } from "../lib/wallet.js";
+import { vethAbi } from "../lib/abi.js";
+import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import { getPublicClient } from "../lib/client.js";
+import { print, printError } from "../lib/output.js";
+import { type TokenInfo, resolveToken } from "../lib/tokens.js";
+import {
+  formatAddress,
+  isValidAddress,
+  normalizeAddress,
+} from "../lib/wallet.js";
 
 export function statusCmd(program: Command) {
   program
@@ -14,23 +18,30 @@ export function statusCmd(program: Command) {
     .action(async (address: string) => {
       const opts = program.opts();
 
-      let token;
+      let token: TokenInfo;
       try {
         token = resolveToken(opts.token);
       } catch (e) {
         return printError("INVALID_TOKEN", (e as Error).message, opts.json);
       }
       if (!token.evm) {
-        return printError("UNSUPPORTED_TOKEN",
-          `Redemption status query only supports vETH (EVM). ${token.id} is on Substrate chains.`, opts.json);
+        return printError(
+          "UNSUPPORTED_TOKEN",
+          `Redemption status query only supports vETH (EVM). ${token.id} is on Substrate chains.`,
+          opts.json,
+        );
       }
 
       if (!isValidAddress(address)) {
-        return printError("INVALID_ADDRESS", "Invalid Ethereum address. Expected 0x + 40 hex chars.", opts.json);
+        return printError(
+          "INVALID_ADDRESS",
+          "Invalid Ethereum address. Expected 0x + 40 hex chars.",
+          opts.json,
+        );
       }
       const addr = normalizeAddress(address);
 
-      let chain;
+      let chain: ChainConfig;
       try {
         chain = resolveChain(opts);
       } catch (e) {
@@ -40,8 +51,10 @@ export function statusCmd(program: Command) {
       try {
         const client = getPublicClient(chain);
         const result = await client.readContract({
-          address: VETH_ADDRESS, abi: vethAbi,
-          functionName: "canWithdrawalAmount", args: [addr],
+          address: VETH_ADDRESS,
+          abi: vethAbi,
+          functionName: "canWithdrawalAmount",
+          args: [addr],
         });
         const [claimable, , pending] = result as [bigint, bigint, bigint];
 
@@ -56,15 +69,22 @@ export function statusCmd(program: Command) {
           hint = "No claimable or pending ETH.";
         }
 
-        print({
-          address: formatAddress(address),
-          claimableEth: `${formatEther(claimable)} ETH`,
-          pendingAmount: `${formatEther(pending)} ETH`,
-          chain: chain.name,
-          hint,
-        }, opts.json);
+        print(
+          {
+            address: formatAddress(address),
+            claimableEth: `${formatEther(claimable)} ETH`,
+            pendingAmount: `${formatEther(pending)} ETH`,
+            chain: chain.name,
+            hint,
+          },
+          opts.json,
+        );
       } catch (e) {
-        printError("RPC_ERROR", `Failed to query status: ${(e as Error).message}`, opts.json);
+        printError(
+          "RPC_ERROR",
+          `Failed to query status: ${(e as Error).message}`,
+          opts.json,
+        );
       }
     });
 }

@@ -20,7 +20,7 @@ export async function fetchTokenStats(tokenId: string): Promise<TokenStats> {
   if (!res.ok) throw new Error(`API returned ${res.status}`);
   const data = await res.json();
   const raw = data[tokenId];
-  if (!raw) throw new Error(`Missing ${tokenId} data in API response`);
+  if (!raw) throw new Error("Missing token data in API response");
   return {
     apy: Number(raw.apy),
     apyBase: Number(raw.apyBase),
@@ -44,6 +44,18 @@ export function deriveRate(stats: TokenStats): DerivedRate {
 
 const DEFILLAMA_URL = "https://yields.llama.fi/pools";
 
+interface DefillamaPoolRaw {
+  symbol?: string;
+  project?: string;
+  chain?: string;
+  apy?: number;
+  tvlUsd?: number;
+}
+
+interface DefillamaResponse {
+  data?: DefillamaPoolRaw[];
+}
+
 export interface LpPool {
   project: string;
   chain: string;
@@ -53,21 +65,23 @@ export interface LpPool {
 }
 
 export async function fetchLpPools(tokenId: string): Promise<LpPool[]> {
-  const res = await fetch(DEFILLAMA_URL, { signal: AbortSignal.timeout(15000) });
+  const res = await fetch(DEFILLAMA_URL, {
+    signal: AbortSignal.timeout(15000),
+  });
   if (!res.ok) throw new Error(`DeFiLlama API returned ${res.status}`);
-  const data = await res.json();
-  const pools = (data as any).data || [];
+  const data = (await res.json()) as DefillamaResponse;
+  const pools = data.data ?? [];
   const tokenLower = tokenId.toLowerCase();
 
   return pools
-    .filter((p: any) => {
+    .filter((p) => {
       const sym = (p.symbol || "").toLowerCase();
       return sym.includes(tokenLower) && sym.includes("-");
     })
-    .map((p: any) => ({
-      project: p.project as string,
-      chain: p.chain as string,
-      symbol: p.symbol as string,
+    .map((p) => ({
+      project: String(p.project ?? ""),
+      chain: String(p.chain ?? ""),
+      symbol: String(p.symbol ?? ""),
       apy: Number(p.apy) || 0,
       tvl: Number(p.tvlUsd) || 0,
     }))

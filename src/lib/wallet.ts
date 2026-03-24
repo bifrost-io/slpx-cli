@@ -1,14 +1,10 @@
-import { existsSync, readFileSync } from "fs";
-import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { getAddress } from "viem";
-import { join } from "path";
+import { type PrivateKeyAccount, privateKeyToAccount } from "viem/accounts";
 
-const KEY_PATH = join(process.env.HOME || "~", ".bifrost", "key");
+const ENV_KEY = "BIFROST_SKILL_PRIVATEKEY";
 
 export function loadWallet(): PrivateKeyAccount | null {
-  if (!existsSync(KEY_PATH)) return null;
-
-  const raw = readFileSync(KEY_PATH, "utf-8").trim();
+  const raw = process.env[ENV_KEY]?.trim();
   if (!raw) return null;
 
   const key = raw.startsWith("0x") ? raw : `0x${raw}`;

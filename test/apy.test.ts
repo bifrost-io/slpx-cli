@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { runCli, runJson } from "./helpers";
 
 describe("slpx apy", () => {
@@ -8,21 +8,33 @@ describe("slpx apy", () => {
     expect(data.totalApy).toContain("%");
     expect(data.baseApy).toContain("%");
     expect(data.rewardApy).toContain("%");
+    expect(data.rewardApyIncentiveAsset).toBe("vDOT");
   });
 
   test("APY values are reasonable", async () => {
     const data = await runJson("apy");
-    const total = parseFloat(data.totalApy);
+    const total = Number.parseFloat(data.totalApy);
     expect(total).toBeGreaterThan(0);
     expect(total).toBeLessThan(100);
   });
 
   test("returns APY for all vTokens", async () => {
-    for (const token of ["vDOT", "vKSM", "vBNC", "vGLMR", "vMOVR", "vFIL", "vASTR", "vMANTA", "vPHA"]) {
+    for (const token of [
+      "vDOT",
+      "vKSM",
+      "vBNC",
+      "vGLMR",
+      "vMOVR",
+      "vFIL",
+      "vASTR",
+      "vMANTA",
+      "vPHA",
+    ]) {
       const data = await runJson(`apy --token ${token}`);
       expect(data.token).toBe(token);
+      expect(data.rewardApyIncentiveAsset).toBe("BNC");
       expect(data.totalApy).toContain("%");
-      const apy = parseFloat(data.totalApy);
+      const apy = Number.parseFloat(data.totalApy);
       expect(apy).toBeGreaterThanOrEqual(0);
       expect(apy).toBeLessThan(100);
     }
@@ -30,9 +42,9 @@ describe("slpx apy", () => {
 
   test("total APY ≈ base + reward", async () => {
     const data = await runJson("apy");
-    const total = parseFloat(data.totalApy);
-    const base = parseFloat(data.baseApy);
-    const reward = parseFloat(data.rewardApy);
+    const total = Number.parseFloat(data.totalApy);
+    const base = Number.parseFloat(data.baseApy);
+    const reward = Number.parseFloat(data.rewardApy);
     expect(Math.abs(total - base - reward)).toBeLessThan(1);
   });
 

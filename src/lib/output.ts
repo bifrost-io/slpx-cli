@@ -1,3 +1,5 @@
+import { sanitizeErrorMessage } from "./sanitize.js";
+
 export function print(data: Record<string, unknown>, json: boolean): void {
   if (json) {
     console.log(JSON.stringify(data, null, 2));
@@ -18,10 +20,11 @@ function printHuman(obj: Record<string, unknown>, prefix: string): void {
 }
 
 export function printError(code: string, message: string, json: boolean): void {
+  const safe = sanitizeErrorMessage(message);
   if (json) {
-    console.log(JSON.stringify({ error: true, code, message }, null, 2));
+    console.log(JSON.stringify({ error: true, code, message: safe }, null, 2));
   } else {
-    console.error(`Error [${code}]: ${message}`);
+    console.error(`Error [${code}]: ${safe}`);
   }
   process.exit(1);
 }

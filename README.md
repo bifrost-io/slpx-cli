@@ -1,183 +1,114 @@
-# Bifrost SLPx CLI
+# @bifrostio/slpx-cli
 
-CLI tool for Bifrost liquid staking — query rates, APY, TVL, balances, redemption status; stake ETH, redeem vETH, claim redeemed ETH.
+Command-line tool for **Bifrost SLPx** liquid staking: exchange rates, APY (optional DeFiLlama LP pools), protocol stats, and **vETH** flows on EVM (balance, mint, redeem queue, claim).
 
-Supports **10 vTokens**: vETH, vDOT, vKSM, vBNC, vGLMR, vMOVR, vFIL, vASTR, vMANTA, vPHA.
+- **Query commands** (`rate`, `apy`, `info`) work for all supported **vTokens** (vETH, vDOT, vKSM, …) via the Bifrost API.
+- **On-chain commands** (`balance`, `status`, `mint`, `redeem`, `claim`) are **vETH-only** on **Ethereum, Base, Optimism, Arbitrum**.
 
-EVM on-chain operations on **Ethereum, Base, Optimism, Arbitrum** (vETH only).
-
-## Prerequisites
-
-- Node.js v18+
-- npm (for dependencies)
-- Bun (optional, for development/testing)
-
-## Install
+## Install & run
 
 ```bash
-npm install
-npm run build
+npx -y @bifrostio/slpx-cli --help
 ```
 
-## Usage
+### Global install (optional)
 
 ```bash
-node dist/index.js <command> [args] [options]
+npm i -g @bifrostio/slpx-cli
+slpx-cli --help
 ```
 
-### Commands
-
-| Command | Description | All vTokens? |
-|---------|-------------|-------------|
-| `rate [amount]` | Query exchange rate (default: 1) | Yes |
-| `apy` | Query staking APY | Yes |
-| `info` | Protocol overview (rate, APY, TVL, holders) | Yes |
-| `balance <address>` | Query vETH balance | vETH only |
-| `status <address>` | Redemption queue status | vETH only |
-| `mint <amount>` | Stake ETH to mint vETH | vETH only |
-| `redeem <amount>` | Redeem vETH (enters processing queue) | vETH only |
-| `claim` | Claim completed ETH redemptions | vETH only |
-
-### Global Options
+## Global options
 
 | Option | Description | Default |
-|--------|-------------|---------|
-| `--token <name>` | vToken name | `vETH` |
-| `--chain <name>` | EVM chain (ethereum/base/optimism/arbitrum) | `ethereum` |
-| `--rpc <url>` | Custom RPC endpoint | auto per chain |
-| `--json` | Output as JSON | `false` |
+| ------ | ----------- | ------- |
+| `--token <name>` | vToken: `vETH`, `vDOT`, `vKSM`, `vBNC`, `vGLMR`, `vMOVR`, `vFIL`, `vASTR`, `vMANTA`, `vPHA` | `vETH` |
+| `--chain <name>` | EVM chain (on-chain / vETH only): `ethereum`, `base`, `optimism`, `arbitrum` | `ethereum` |
+| `--rpc <url>` | Custom RPC URL | chain defaults |
+| `--json` | Print JSON instead of human-readable text | off |
 
-### Transaction Options
+## Transaction-related options
 
 | Option | Description |
-|--------|-------------|
-| `--dry-run` | Output unsigned tx without sending |
-| `--address <addr>` | Wallet address (for redeem/claim without key file) |
+| ------ | ----------- |
+| `--dry-run` | Build unsigned transaction(s); do not broadcast |
+| `--weth` | `mint`: use WETH instead of native ETH |
+| `--lp` | `apy`: include LP pool yields (DeFiLlama) |
+| `--address <addr>` | Address for dry-run / signing flows when no wallet env is configured |
 
-### Examples
+## Commands
 
-```bash
-# Query all vTokens
-node dist/index.js rate --json
-node dist/index.js rate 10 --token vDOT --json
-node dist/index.js apy --token vKSM --json
-node dist/index.js info --token vMANTA --json
+Use **`--json`** when you need stable, parseable output (e.g. scripts or CI).
 
-# vETH on-chain
-node dist/index.js balance 0x742d...bD18 --json
-node dist/index.js mint 0.1 --dry-run --json
-node dist/index.js balance 0x742d...bD18 --chain base --json
+### Query (all vTokens)
 
-# Multi-chain
-node dist/index.js mint 0.1 --dry-run --chain arbitrum --json
-```
-
-## Supported Tokens
-
-| Token | Base Asset | APY | Query | On-chain |
-|-------|-----------|-----|-------|----------|
-| vETH | ETH | ~8% | Yes | Yes |
-| vDOT | DOT | ~5% | Yes | No |
-| vKSM | KSM | ~12% | Yes | No |
-| vBNC | BNC | ~2% | Yes | No |
-| vGLMR | GLMR | ~8% | Yes | No |
-| vMOVR | MOVR | ~17% | Yes | No |
-| vFIL | FIL | ~13% | Yes | No |
-| vASTR | ASTR | ~10% | Yes | No |
-| vMANTA | MANTA | ~15% | Yes | No |
-| vPHA | PHA | ~9% | Yes | No |
-
-## Wallet Setup
-
-The CLI reads private keys from `~/.bifrost/key` (never exposed to LLM or output).
+| Command | Purpose |
+| ------- | ------- |
+| `rate [amount]` | Base ↔ vToken exchange rate (default amount: 1 base unit) |
+| `apy` | Staking APY (`baseApy`, `rewardApy`, `totalApy`); JSON includes `rewardApyIncentiveAsset`: **vDOT** for **vETH** only, **BNC** for all other vTokens; add `--lp` for LP pools |
+| `info` | Protocol overview: rate, APY, TVL, holders; vETH adds contract, chains, paused |
 
 ```bash
-echo "0xYOUR_PRIVATE_KEY" > ~/.bifrost/key
-chmod 600 ~/.bifrost/key
+npx -y @bifrostio/slpx-cli rate --json
+npx -y @bifrostio/slpx-cli rate --token vDOT --json
+npx -y @bifrostio/slpx-cli apy --token vDOT --lp --json
+npx -y @bifrostio/slpx-cli info --json
 ```
 
-Without a key file, transaction commands output unsigned tx data for manual signing.
+### On-chain (vETH only)
+
+| Command | Purpose |
+| ------- | ------- |
+| `balance <address>` | vETH balance and ETH value; comma-separated addresses for batch |
+| `status <address>` | Redemption queue: claimable / pending + time hint |
+| `mint <amount>` | Stake ETH or WETH (`--weth`) → vETH |
+| `redeem <amount>` | Start vETH redemption (**queued; not instant**, often ~1–3 days) |
+| `claim` | Claim ETH after redemption completes |
+
+```bash
+npx -y @bifrostio/slpx-cli balance 0xYourAddress --chain base --json
+npx -y @bifrostio/slpx-cli status 0xYourAddress --json
+npx -y @bifrostio/slpx-cli mint 0.1 --json --dry-run
+npx -y @bifrostio/slpx-cli mint 0.1 --weth --json --dry-run
+npx -y @bifrostio/slpx-cli redeem 1.0 --json --dry-run --address 0xYourAddress
+npx -y @bifrostio/slpx-cli claim --json --dry-run --address 0xYourAddress
+```
+
+**vETH contract (all supported EVM chains):** `0xc3997ff81f2831929499c4eE4Ee4e0F08F42D4D8`
+
+## Environment
+
+| Variable | Purpose |
+| -------- | ------- |
+| `BIFROST_CHAIN` | Default chain if `--chain` is omitted |
+| `BIFROST_RPC_URL` | Default RPC if `--rpc` is omitted |
+| `BIFROST_SKILL_PRIVATEKEY` | Hex private key for signing (omit for `--dry-run` / read-only) |
+
+## JSON errors
+
+With `--json`, failures are a single JSON object: `{ "error": true, "code": "...", "message": "..." }`.
+
+Common codes: `INVALID_TOKEN`, `INVALID_CHAIN`, `INVALID_ADDRESS`, `INVALID_AMOUNT`, `UNSUPPORTED_TOKEN`, `CONTRACT_PAUSED`, `INSUFFICIENT_BALANCE`, `NOTHING_TO_CLAIM`, `NO_WALLET`, `RPC_ERROR`, `API_ERROR`, `TX_ERROR`, `CLI_ERROR`.
+
+## Operational notes
+
+1. **Substrate vTokens** (vDOT, vKSM, …): use **query** commands only; there is no EVM mint/redeem path in this CLI.
+2. **Redeem** goes through Bifrost’s cross-chain queue — plan for delay before funds are claimable.
+3. Prefer **`--dry-run`** before any real `mint` / `redeem` / `claim`.
+4. With **`--weth`** and `--dry-run`, unsigned output includes approve + deposit steps.
+5. The CLI may fall back to backup RPCs if the primary endpoint fails.
 
 ## Development
 
 ```bash
-# Dev (requires bun)
-bun src/index.ts rate --json
-
-# Build
-npm run build
-
-# Test (requires bun)
+bun install
+bun run build
 bun test
+bun run dev -- --help
 ```
 
-## Tests
-
-### Run All Tests
-
-```bash
-bun test
-```
-
-### Test Categories
-
-| Category | Files | Tests | What they verify |
-|----------|-------|-------|-----------------|
-| Unit | tokens, chains, wallet, output | 20 | Token resolution, chain config, address utils, output formatting |
-| Integration | api, rate, apy, info, balance, status, mint, redeem, claim, cli | 39 | Live API, all 10 vTokens, on-chain queries, validation, error codes |
-| E2E | e2e | 6 | Full workflows, multi-token comparison, multi-chain, JSON consistency |
-
-### Current Results
-
-```
-74 pass, 0 fail, 454 assertions
-Ran 74 tests across 15 files
-```
-
-## Project Structure
-
-```
-skill_cli_new/
-├── package.json
-├── tsconfig.json
-├── LICENSE
-├── src/
-│   ├── index.ts          # CLI entry point (#!/usr/bin/env node)
-│   ├── commands/         # 8 command handlers
-│   └── lib/
-│       ├── tokens.ts     # 10 vToken configs + resolver
-│       ├── chains.ts     # 4 EVM chain configs + resolver
-│       ├── api.ts        # Bifrost API (all tokens)
-│       ├── abi.ts        # vETH ERC-4626 ABI
-│       ├── client.ts     # viem client factories
-│       ├── wallet.ts     # Secure key handling
-│       └── output.ts     # JSON + human output
-├── dist/                 # Compiled JS (npm run build)
-├── skills/
-│   └── SKILL.md          # Agent skill file
-└── test/                 # Unit, integration, e2e tests
-```
-
-## Agent Skill
-
-This CLI is designed to be used as an agent skill. The skill definition is in `skills/SKILL.md`.
-
-**For agents with npx** (recommended):
-
-```bash
-npx -y @bifrost-io/slpx-cli --version
-```
-
-**Manual installation** (if npm package is not available):
-
-```bash
-git clone https://github.com/bifrost-io/slpx-cli.git ~/slpx-cli
-cd ~/slpx-cli && npm install && npm run build
-node ~/slpx-cli/dist/index.js --version
-```
-
-Copy `skills/SKILL.md` to your agent's skill directory to enable the Bifrost SLPx skill.
+Lint / format: `bun run lint`, `bun run format`, `bun run check:biome`.
 
 ## License
 
-MIT
+See `LICENSE`.

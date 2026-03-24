@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { runCli, runJson } from "./helpers";
 
 describe("CLI general", () => {
   test("--version outputs version", async () => {
     const result = await runCli("--version");
-    expect(result.stdout).toBe("0.2.0");
+    expect(result.stdout).toBe("0.1.0-alpha.0");
     expect(result.exitCode).toBe(0);
   });
 

@@ -1,11 +1,16 @@
 import type { Command } from "commander";
-import { getPublicClient, getWalletClient } from "../lib/client.js";
-import { resolveChain, VETH_ADDRESS } from "../lib/chains.js";
-import { resolveToken } from "../lib/tokens.js";
+import { encodeFunctionData, formatEther } from "viem";
 import { vethAbi } from "../lib/abi.js";
+import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import { getPublicClient, getWalletClient } from "../lib/client.js";
 import { print, printError } from "../lib/output.js";
-import { formatEther, encodeFunctionData } from "viem";
-import { loadWallet, formatAddress, isValidAddress, normalizeAddress } from "../lib/wallet.js";
+import { type TokenInfo, resolveToken } from "../lib/tokens.js";
+import {
+  formatAddress,
+  isValidAddress,
+  loadWallet,
+  normalizeAddress,
+} from "../lib/wallet.js";
 
 export function claimCmd(program: Command) {
   program
@@ -16,18 +21,21 @@ export function claimCmd(program: Command) {
     .action(async (cmdOpts: { dryRun?: boolean; address?: string }) => {
       const opts = program.opts();
 
-      let token;
+      let token: TokenInfo;
       try {
         token = resolveToken(opts.token);
       } catch (e) {
         return printError("INVALID_TOKEN", (e as Error).message, opts.json);
       }
       if (!token.evm) {
-        return printError("UNSUPPORTED_TOKEN",
-          `Claim only supports vETH (EVM). ${token.id} is on Substrate chains.`, opts.json);
+        return printError(
+          "UNSUPPORTED_TOKEN",
+          `Claim only supports vETH (EVM). ${token.id} is on Substrate chains.`,
+          opts.json,
+        );
       }
 
-      let chain;
+      let chain: ChainConfig;
       try {
         chain = resolveChain(opts);
       } catch (e) {
@@ -40,52 +48,82 @@ export function claimCmd(program: Command) {
         const userAddr = wallet?.address || cmdOpts.address;
 
         if (!userAddr) {
-          return printError("NO_WALLET", "No wallet found. Provide --address or set up ~/.bifrost/key.", opts.json);
+          return printError(
+            "NO_WALLET",
+            "No wallet found. Provide --address or set BIFROST_SKILL_PRIVATEKEY in the environment.",
+            opts.json,
+          );
         }
         if (!isValidAddress(userAddr)) {
-          return printError("INVALID_ADDRESS", "Invalid Ethereum address.", opts.json);
+          return printError(
+            "INVALID_ADDRESS",
+            "Invalid Ethereum address.",
+            opts.json,
+          );
         }
         const addr = normalizeAddress(userAddr);
 
         const result = await client.readContract({
-          address: VETH_ADDRESS, abi: vethAbi,
-          functionName: "canWithdrawalAmount", args: [addr],
+          address: VETH_ADDRESS,
+          abi: vethAbi,
+          functionName: "canWithdrawalAmount",
+          args: [addr],
         });
         const [claimable] = result as [bigint, bigint, bigint];
 
         if (claimable === 0n) {
-          return printError("NOTHING_TO_CLAIM",
-            "No claimable ETH. Redemption may still be processing.", opts.json);
+          return printError(
+            "NOTHING_TO_CLAIM",
+            "No claimable ETH. Redemption may still be processing.",
+            opts.json,
+          );
         }
 
         if (!wallet || cmdOpts.dryRun) {
-          const data = encodeFunctionData({ abi: vethAbi, functionName: "withdrawCompleteToETH" });
-          print({
-            action: "claim",
-            claimable: `${formatEther(claimable)} ETH`,
-            mode: "unsigned",
-            unsigned: {
-              to: VETH_ADDRESS, value: "0", data, chainId: chain.chainId,
+          const data = encodeFunctionData({
+            abi: vethAbi,
+            functionName: "withdrawCompleteToETH",
+          });
+          print(
+            {
+              action: "claim",
+              claimable: `${formatEther(claimable)} ETH`,
+              mode: "unsigned",
+              unsigned: {
+                to: VETH_ADDRESS,
+                value: "0",
+                data,
+                chainId: chain.chainId,
+              },
             },
-          }, opts.json);
+            opts.json,
+          );
           return;
         }
 
         const walletClient = getWalletClient(chain, wallet);
         const txHash = await walletClient.writeContract({
-          address: VETH_ADDRESS, abi: vethAbi,
+          address: VETH_ADDRESS,
+          abi: vethAbi,
           functionName: "withdrawCompleteToETH",
         });
 
-        print({
-          action: "claim",
-          claimed: `${formatEther(claimable)} ETH`,
-          from: formatAddress(wallet.address),
-          txHash,
-          explorer: `${chain.explorer}/tx/${txHash}`,
-        }, opts.json);
+        print(
+          {
+            action: "claim",
+            claimed: `${formatEther(claimable)} ETH`,
+            from: formatAddress(wallet.address),
+            txHash,
+            explorer: `${chain.explorer}/tx/${txHash}`,
+          },
+          opts.json,
+        );
       } catch (e) {
-        printError("TX_ERROR", `Claim failed: ${(e as Error).message}`, opts.json);
+        printError(
+          "TX_ERROR",
+          `Claim failed: ${(e as Error).message}`,
+          opts.json,
+        );
       }
     });
 }

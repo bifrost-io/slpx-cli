@@ -1,10 +1,15 @@
 import type { Command } from "commander";
-import { fetchTokenStats, deriveRate } from "../lib/api.js";
-import { getPublicClient } from "../lib/client.js";
-import { resolveChain, validateCustomRpc, VETH_ADDRESS } from "../lib/chains.js";
-import { resolveToken } from "../lib/tokens.js";
 import { vethAbi } from "../lib/abi.js";
+import { deriveRate, fetchTokenStats } from "../lib/api.js";
+import {
+  type ChainConfig,
+  VETH_ADDRESS,
+  resolveChain,
+  validateCustomRpc,
+} from "../lib/chains.js";
+import { getPublicClient } from "../lib/client.js";
 import { print, printError } from "../lib/output.js";
+import { type TokenInfo, resolveToken } from "../lib/tokens.js";
 
 export function infoCmd(program: Command) {
   program
@@ -13,7 +18,7 @@ export function infoCmd(program: Command) {
     .action(async () => {
       const opts = program.opts();
 
-      let token;
+      let token: TokenInfo;
       try {
         token = resolveToken(opts.token);
       } catch (e) {
@@ -21,12 +26,20 @@ export function infoCmd(program: Command) {
       }
 
       if (token.evm) {
-        let chain;
-        try { chain = resolveChain(opts); } catch (e) {
+        let chain: ChainConfig;
+        try {
+          chain = resolveChain(opts);
+        } catch (e) {
           return printError("INVALID_CHAIN", (e as Error).message, opts.json);
         }
-        try { await validateCustomRpc(chain, opts); } catch (e) {
-          return printError("RPC_ERROR", `Custom RPC unreachable: ${(e as Error).message}`, opts.json);
+        try {
+          await validateCustomRpc(chain, opts);
+        } catch (e) {
+          return printError(
+            "RPC_ERROR",
+            `Custom RPC unreachable: ${(e as Error).message}`,
+            opts.json,
+          );
         }
       }
 
@@ -54,15 +67,23 @@ export function infoCmd(program: Command) {
           try {
             const chain = resolveChain(opts);
             const client = getPublicClient(chain);
-            result.paused = await client.readContract({
-              address: VETH_ADDRESS, abi: vethAbi, functionName: "paused",
-            }) as boolean;
-          } catch { /* best-effort */ }
+            result.paused = (await client.readContract({
+              address: VETH_ADDRESS,
+              abi: vethAbi,
+              functionName: "paused",
+            })) as boolean;
+          } catch {
+            /* best-effort */
+          }
         }
 
         print(result, opts.json);
       } catch (e) {
-        printError("API_ERROR", `Failed to fetch info: ${(e as Error).message}`, opts.json);
+        printError(
+          "API_ERROR",
+          `Failed to fetch info: ${(e as Error).message}`,
+          opts.json,
+        );
       }
     });
 }

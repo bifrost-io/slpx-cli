@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { resolveToken, VALID_TOKENS } from "../src/lib/tokens";
+import { describe, expect, test } from "bun:test";
+import { VALID_TOKENS, resolveToken } from "../src/lib/tokens";
 
 describe("Token resolution", () => {
   test("resolves all 10 tokens case-insensitively", () => {
@@ -15,19 +15,19 @@ describe("Token resolution", () => {
   });
 
   test("only vETH is EVM", () => {
-    const evmTokens = VALID_TOKENS.filter(t => t.evm);
+    const evmTokens = VALID_TOKENS.filter((t) => t.evm);
     expect(evmTokens.length).toBe(1);
     expect(evmTokens[0].id).toBe("vETH");
   });
 
   test("each token has unique baseAsset", () => {
-    const assets = VALID_TOKENS.map(t => t.baseAsset);
+    const assets = VALID_TOKENS.map((t) => t.baseAsset);
     expect(new Set(assets).size).toBe(assets.length);
   });
 
   test("throws on unknown token", () => {
-    expect(() => resolveToken("INVALID")).toThrow("Unknown token");
-    expect(() => resolveToken("solana")).toThrow("Unknown token");
+    expect(() => resolveToken("INVALID")).toThrow(/Unknown token\. Valid:/);
+    expect(() => resolveToken("solana")).toThrow(/Unknown token\. Valid:/);
   });
 
   test("error message lists all valid tokens", () => {

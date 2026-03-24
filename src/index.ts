@@ -1,29 +1,41 @@
 #!/usr/bin/env node
 import { Command, CommanderError } from "commander";
-import { rateCmd } from "./commands/rate.js";
-import { balanceCmd } from "./commands/balance.js";
 import { apyCmd } from "./commands/apy.js";
-import { infoCmd } from "./commands/info.js";
-import { statusCmd } from "./commands/status.js";
-import { mintCmd } from "./commands/mint.js";
-import { redeemCmd } from "./commands/redeem.js";
+import { balanceCmd } from "./commands/balance.js";
 import { claimCmd } from "./commands/claim.js";
+import { infoCmd } from "./commands/info.js";
+import { mintCmd } from "./commands/mint.js";
+import { rateCmd } from "./commands/rate.js";
+import { redeemCmd } from "./commands/redeem.js";
+import { statusCmd } from "./commands/status.js";
+import { sanitizeErrorMessage } from "./lib/sanitize.js";
 
 const wantsJson = process.argv.includes("--json");
 
 const program = new Command()
   .name("slpx")
   .description("Bifrost SLPx liquid staking CLI — all vTokens")
-  .version("0.2.0");
+  .version("0.1.0-alpha.0");
 
 if (wantsJson) {
   program.exitOverride();
-  program.configureOutput({ writeErr: () => {}, writeOut: (s: string) => process.stdout.write(s) });
+  program.configureOutput({
+    writeErr: () => {},
+    writeOut: (s: string) => process.stdout.write(s),
+  });
 }
 
 program
-  .option("--chain <name>", "target EVM chain (ethereum|base|optimism|arbitrum)", "ethereum")
-  .option("--token <name>", "vToken name (vETH|vDOT|vKSM|vBNC|vGLMR|vMOVR|vFIL|vASTR|vMANTA|vPHA)", "vETH")
+  .option(
+    "--chain <name>",
+    "target EVM chain (ethereum|base|optimism|arbitrum)",
+    "ethereum",
+  )
+  .option(
+    "--token <name>",
+    "vToken name (vETH|vDOT|vKSM|vBNC|vGLMR|vMOVR|vFIL|vASTR|vMANTA|vPHA)",
+    "vETH",
+  )
   .option("--rpc <url>", "custom RPC endpoint")
   .option("--json", "output as JSON", false);
 
@@ -41,7 +53,17 @@ try {
 } catch (err: unknown) {
   if (wantsJson && err instanceof CommanderError) {
     const mapped = mapCommanderError(err.message);
-    console.log(JSON.stringify({ error: true, code: mapped.code, message: mapped.message }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          error: true,
+          code: mapped.code,
+          message: sanitizeErrorMessage(mapped.message),
+        },
+        null,
+        2,
+      ),
+    );
     process.exit(err.exitCode);
   }
   throw err;
@@ -55,7 +77,11 @@ function mapCommanderError(msg: string): { code: string; message: string } {
     return { code: "INVALID_ADDRESS", message: "Address is required." };
   }
   if (/unknown option '(-?\d)/.test(msg)) {
-    return { code: "INVALID_AMOUNT", message: "Amount must be a positive number. Negative values are not allowed." };
+    return {
+      code: "INVALID_AMOUNT",
+      message:
+        "Amount must be a positive number. Negative values are not allowed.",
+    };
   }
-  return { code: "CLI_ERROR", message: msg };
+  return { code: "CLI_ERROR", message: "Invalid command line arguments." };
 }

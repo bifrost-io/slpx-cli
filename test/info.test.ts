@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { runJson } from "./helpers";
 
 describe("slpx info", () => {
@@ -30,7 +30,16 @@ describe("slpx info", () => {
   });
 
   test("returns info for all vTokens", async () => {
-    for (const token of ["vKSM", "vBNC", "vGLMR", "vMOVR", "vFIL", "vASTR", "vMANTA", "vPHA"]) {
+    for (const token of [
+      "vKSM",
+      "vBNC",
+      "vGLMR",
+      "vMOVR",
+      "vFIL",
+      "vASTR",
+      "vMANTA",
+      "vPHA",
+    ]) {
       const data = await runJson(`info --token ${token}`);
       expect(data.token).toBe(token);
       expect(data.protocol).toBe("Bifrost SLPx");
@@ -41,6 +50,6 @@ describe("slpx info", () => {
   test("TVL is a positive dollar value", async () => {
     const data = await runJson("info");
     const tvlStr = data.tvl.replace(/[$,]/g, "");
-    expect(parseFloat(tvlStr)).toBeGreaterThan(0);
+    expect(Number.parseFloat(tvlStr)).toBeGreaterThan(0);
   });
 });

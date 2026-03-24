@@ -1,16 +1,17 @@
 {
-  "name": "@bifrost-io/slpx-cli",
-  "version": "0.2.0",
+  "name": "@bifrostio/slpx-cli",
+  "version": "0.1.0-alpha.0",
   "description": "Bifrost SLPx liquid staking CLI — all vTokens",
+  "homepage": "https://bifrost.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bifrost-io/slpx-cli.git"
+  },
   "type": "module",
   "bin": {
     "slpx-cli": "dist/index.js"
   },
-  "files": [
-    "dist/",
-    "LICENSE",
-    "README.md"
-  ],
+  "files": ["dist/", "LICENSE", "README.md"],
   "publishConfig": {
     "access": "public"
   },
@@ -19,15 +20,25 @@
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "bun src/index.ts",
-    "test": "bun test"
+    "test:all": "bun test --timeout 60000",
+    "prepare": "husky",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "check:biome": "biome check --write ."
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs,json}": "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
   },
   "dependencies": {
     "commander": "^13.1.0",
     "viem": "^2.46.3"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
     "@types/node": "^22.0.0",
-    "@types/bun": "latest"
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "typescript": "^5.7.0"
   }
 }

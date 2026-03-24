@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { runJson } from "./helpers";
 
 describe("E2E workflows", () => {
@@ -8,10 +8,10 @@ describe("E2E workflows", () => {
 
     const rate = await runJson("rate 1");
     expect(rate.source).toBe("api");
-    expect(parseFloat(rate.output)).toBeGreaterThan(0);
+    expect(Number.parseFloat(rate.output)).toBeGreaterThan(0);
 
     const apy = await runJson("apy");
-    expect(parseFloat(apy.totalApy)).toBeGreaterThan(0);
+    expect(Number.parseFloat(apy.totalApy)).toBeGreaterThan(0);
   });
 
   test("multi-token comparison: vETH vs vDOT vs vKSM", async () => {
@@ -21,7 +21,7 @@ describe("E2E workflows", () => {
       runJson("apy --token vKSM"),
     ]);
     for (const r of results) {
-      expect(parseFloat(r.totalApy)).toBeGreaterThan(0);
+      expect(Number.parseFloat(r.totalApy)).toBeGreaterThan(0);
     }
     expect(results[0].token).toBe("vETH");
     expect(results[1].token).toBe("vDOT");
@@ -49,11 +49,22 @@ describe("E2E workflows", () => {
   });
 
   test("all 10 tokens return valid rates", async () => {
-    const tokens = ["vETH", "vDOT", "vKSM", "vBNC", "vGLMR", "vMOVR", "vFIL", "vASTR", "vMANTA", "vPHA"];
+    const tokens = [
+      "vETH",
+      "vDOT",
+      "vKSM",
+      "vBNC",
+      "vGLMR",
+      "vMOVR",
+      "vFIL",
+      "vASTR",
+      "vMANTA",
+      "vPHA",
+    ];
     for (const token of tokens) {
       const data = await runJson(`rate --token ${token}`);
       expect(data.token).toBe(token);
-      expect(parseFloat(data.output)).toBeGreaterThan(0);
+      expect(Number.parseFloat(data.output)).toBeGreaterThan(0);
     }
   });
 

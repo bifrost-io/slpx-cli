@@ -1,5 +1,10 @@
-import { describe, test, expect } from "bun:test";
-import { fetchTokenStats, deriveRate, fetchLpPools } from "../src/lib/api";
+import { describe, expect, test } from "bun:test";
+import {
+  type TokenStats,
+  deriveRate,
+  fetchLpPools,
+  fetchTokenStats,
+} from "../src/lib/api";
 import { VALID_TOKENS } from "../src/lib/tokens";
 
 describe("Bifrost API", () => {
@@ -26,7 +31,16 @@ describe("Bifrost API", () => {
   });
 
   test("deriveRate throws on zero tvm", () => {
-    expect(() => deriveRate({ tvm: 0, totalIssuance: 100 } as any)).toThrow("Invalid rate data");
+    const bad: TokenStats = {
+      apy: 0,
+      apyBase: 0,
+      apyReward: 0,
+      tvl: 0,
+      tvm: 0,
+      totalIssuance: 100,
+      holders: 0,
+    };
+    expect(() => deriveRate(bad)).toThrow("Invalid rate data");
   });
 
   test("fetchTokenStats throws on unknown token", async () => {
@@ -34,7 +48,7 @@ describe("Bifrost API", () => {
       await fetchTokenStats("NONEXISTENT");
       expect(true).toBe(false);
     } catch (e) {
-      expect((e as Error).message).toContain("Missing NONEXISTENT");
+      expect((e as Error).message).toContain("Missing token data");
     }
   });
 

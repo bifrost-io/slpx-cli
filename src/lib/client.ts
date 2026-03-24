@@ -1,7 +1,13 @@
-import { createPublicClient, createWalletClient, http, fallback, type Chain } from "viem";
-import { mainnet, base, optimism, arbitrum } from "viem/chains";
-import type { ChainConfig } from "./chains.js";
+import {
+  http,
+  type Chain,
+  createPublicClient,
+  createWalletClient,
+  fallback,
+} from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
+import { arbitrum, base, mainnet, optimism } from "viem/chains";
+import type { ChainConfig } from "./chains.js";
 
 const viemChains: Record<number, Chain> = {
   1: mainnet,
@@ -22,7 +28,10 @@ export function getPublicClient(chain: ChainConfig) {
   });
 }
 
-export function getWalletClient(chain: ChainConfig, account: PrivateKeyAccount) {
+export function getWalletClient(
+  chain: ChainConfig,
+  account: PrivateKeyAccount,
+) {
   return createWalletClient({
     account,
     chain: viemChains[chain.chainId],

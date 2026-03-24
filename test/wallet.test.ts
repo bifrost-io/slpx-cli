@@ -1,5 +1,9 @@
-import { describe, test, expect } from "bun:test";
-import { formatAddress, isValidAddress, normalizeAddress } from "../src/lib/wallet";
+import { describe, expect, test } from "bun:test";
+import {
+  formatAddress,
+  isValidAddress,
+  normalizeAddress,
+} from "../src/lib/wallet";
 
 describe("Wallet utilities", () => {
   test("formatAddress truncates correctly", () => {
@@ -8,8 +12,12 @@ describe("Wallet utilities", () => {
   });
 
   test("isValidAddress accepts valid addresses", () => {
-    expect(isValidAddress("0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18")).toBe(true);
-    expect(isValidAddress("0x0000000000000000000000000000000000000000")).toBe(true);
+    expect(isValidAddress("0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18")).toBe(
+      true,
+    );
+    expect(isValidAddress("0x0000000000000000000000000000000000000000")).toBe(
+      true,
+    );
   });
 
   test("isValidAddress rejects invalid addresses", () => {

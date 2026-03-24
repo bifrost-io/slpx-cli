@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { resolveChain, chains } from "../src/lib/chains";
+import { describe, expect, test } from "bun:test";
+import { chains, resolveChain } from "../src/lib/chains";
 
 describe("Chain resolution", () => {
   test("resolves all 4 chains", () => {

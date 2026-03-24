@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { runJson, runCli } from "./helpers";
+import { describe, expect, test } from "bun:test";
+import { runCli, runJson } from "./helpers";
 
 describe("slpx rate", () => {
   test("returns rate with default amount (1 ETH)", async () => {
@@ -14,7 +14,7 @@ describe("slpx rate", () => {
   test("returns rate for custom amount", async () => {
     const data = await runJson("rate 10");
     expect(data.input).toBe("10 ETH");
-    const num = parseFloat(data.output);
+    const num = Number.parseFloat(data.output);
     expect(num).toBeGreaterThan(5);
     expect(num).toBeLessThan(15);
   });
@@ -24,7 +24,7 @@ describe("slpx rate", () => {
       const data = await runJson(`rate --token ${token}`);
       expect(data.token).toBe(token);
       expect(data.source).toBe("api");
-      const num = parseFloat(data.output);
+      const num = Number.parseFloat(data.output);
       expect(num).toBeGreaterThan(0);
     }
   });

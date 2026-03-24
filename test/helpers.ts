@@ -1,6 +1,6 @@
-import { spawn } from "child_process";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { spawn } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, "..");
@@ -13,28 +13,47 @@ export interface RunResult {
 
 export function runCli(args: string): Promise<RunResult> {
   return new Promise((resolve) => {
-    const child = spawn("node", ["dist/index.js", ...args.split(/\s+/).filter(Boolean)], {
-      cwd: PROJECT_ROOT,
-      env: { ...process.env, BIFROST_CHAIN: undefined, BIFROST_RPC_URL: undefined },
-    });
+    const child = spawn(
+      "node",
+      ["dist/index.js", ...args.split(/\s+/).filter(Boolean)],
+      {
+        cwd: PROJECT_ROOT,
+        env: {
+          ...process.env,
+          BIFROST_CHAIN: undefined,
+          BIFROST_RPC_URL: undefined,
+          BIFROST_SKILL_PRIVATEKEY: undefined,
+        },
+      },
+    );
 
     let stdout = "";
     let stderr = "";
 
-    child.stdout.on("data", (d: Buffer) => (stdout += d.toString()));
-    child.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+    child.stdout.on("data", (d: Buffer) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
 
     child.on("close", (code: number | null) => {
-      resolve({ stdout: stdout.trim(), stderr: stderr.trim(), exitCode: code ?? 1 });
+      resolve({
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode: code ?? 1,
+      });
     });
   });
 }
 
-export async function runJson(args: string): Promise<any> {
+export async function runJson(args: string): Promise<unknown> {
   const result = await runCli(`${args} --json`);
   try {
     return JSON.parse(result.stdout);
   } catch {
-    throw new Error(`Failed to parse JSON from: ${result.stdout}\nstderr: ${result.stderr}`);
+    throw new Error(
+      `Failed to parse JSON from: ${result.stdout}\nstderr: ${result.stderr}`,
+    );
   }
 }
