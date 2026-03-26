@@ -5,19 +5,17 @@ import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
 import { print, printError } from "../lib/output.js";
 import { type TokenInfo, resolveToken } from "../lib/tokens.js";
-import {
-  formatAddress,
-  isValidAddress,
-  loadWallet,
-  normalizeAddress,
-} from "../lib/wallet.js";
+import { formatAddress, resolveSigner } from "../lib/wallet.js";
 
 export function claimCmd(program: Command) {
   program
     .command("claim")
     .description("Claim completed ETH redemptions (EVM only)")
     .option("--dry-run", "output unsigned tx without sending")
-    .option("--address <addr>", "wallet address (for status check in dry-run)")
+    .option(
+      "--address <addr>",
+      "wallet address (dry-run without environment variable BIFROST_SKILL_PRIVATEKEY)",
+    )
     .action(async (cmdOpts: { dryRun?: boolean; address?: string }) => {
       const opts = program.opts();
 
@@ -44,24 +42,15 @@ export function claimCmd(program: Command) {
 
       try {
         const client = getPublicClient(chain);
-        const wallet = loadWallet();
-        const userAddr = wallet?.address || cmdOpts.address;
+        const signer = resolveSigner({
+          dryRun: cmdOpts.dryRun,
+          address: cmdOpts.address,
+        });
+        if ("message" in signer) {
+          return printError(signer.code, signer.message, opts.json);
+        }
 
-        if (!userAddr) {
-          return printError(
-            "NO_WALLET",
-            "No wallet found. Provide --address or set BIFROST_SKILL_PRIVATEKEY in the environment.",
-            opts.json,
-          );
-        }
-        if (!isValidAddress(userAddr)) {
-          return printError(
-            "INVALID_ADDRESS",
-            "Invalid Ethereum address.",
-            opts.json,
-          );
-        }
-        const addr = normalizeAddress(userAddr);
+        const addr = signer.from;
 
         const result = await client.readContract({
           address: VETH_ADDRESS,
@@ -79,7 +68,7 @@ export function claimCmd(program: Command) {
           );
         }
 
-        if (!wallet || cmdOpts.dryRun) {
+        if (signer.dryRun) {
           const data = encodeFunctionData({
             abi: vethAbi,
             functionName: "withdrawCompleteToETH",
@@ -101,7 +90,7 @@ export function claimCmd(program: Command) {
           return;
         }
 
-        const walletClient = getWalletClient(chain, wallet);
+        const walletClient = getWalletClient(chain, signer.wallet);
         const txHash = await walletClient.writeContract({
           address: VETH_ADDRESS,
           abi: vethAbi,
@@ -112,7 +101,7 @@ export function claimCmd(program: Command) {
           {
             action: "claim",
             claimedEth: formatEther(claimable),
-            from: formatAddress(wallet.address),
+            from: formatAddress(signer.wallet.address),
             txHash,
             explorer: `${chain.explorer}/tx/${txHash}`,
           },

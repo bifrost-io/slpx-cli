@@ -8,14 +8,17 @@ import { type TokenInfo, resolveToken } from "../lib/tokens.js";
 import {
   formatAddress,
   isValidAddress,
+  loadWallet,
   normalizeAddress,
 } from "../lib/wallet.js";
 
 export function statusCmd(program: Command) {
   program
-    .command("status <address>")
-    .description("Query redemption status for an address (EVM only)")
-    .action(async (address: string) => {
+    .command("status [address]")
+    .description(
+      "Query redemption status for an address (EVM only); omit address to use environment variable BIFROST_SKILL_PRIVATEKEY",
+    )
+    .action(async (rawAddress?: string) => {
       const opts = program.opts();
 
       let token: TokenInfo;
@@ -32,14 +35,32 @@ export function statusCmd(program: Command) {
         );
       }
 
-      if (!isValidAddress(address)) {
-        return printError(
-          "INVALID_ADDRESS",
-          "Invalid Ethereum address. Expected 0x + 40 hex chars.",
-          opts.json,
-        );
+      const trimmed = rawAddress?.trim() ?? "";
+      let displayShort: string;
+      let addr: `0x${string}`;
+
+      if (!trimmed) {
+        const wallet = loadWallet();
+        if (!wallet) {
+          return printError(
+            "NO_ADDRESS_OR_PRIVATE_KEY",
+            "Provide an address argument or set environment variable BIFROST_SKILL_PRIVATEKEY.",
+            opts.json,
+          );
+        }
+        addr = normalizeAddress(wallet.address);
+        displayShort = wallet.address;
+      } else {
+        if (!isValidAddress(trimmed)) {
+          return printError(
+            "INVALID_ADDRESS",
+            "Invalid Ethereum address. Expected 0x + 40 hex chars.",
+            opts.json,
+          );
+        }
+        addr = normalizeAddress(trimmed);
+        displayShort = trimmed;
       }
-      const addr = normalizeAddress(address);
 
       let chain: ChainConfig;
       try {
@@ -71,7 +92,7 @@ export function statusCmd(program: Command) {
 
         print(
           {
-            address: formatAddress(address),
+            address: formatAddress(displayShort),
             claimableEth: formatEther(claimable),
             pendingEthAmount: formatEther(pending),
             chain: chain.name,

@@ -10,7 +10,11 @@ import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
 import { print, printError } from "../lib/output.js";
 import { type TokenInfo, resolveToken } from "../lib/tokens.js";
-import { formatAddress, loadWallet } from "../lib/wallet.js";
+import {
+  type ResolvedSigner,
+  formatAddress,
+  resolveSigner,
+} from "../lib/wallet.js";
 
 export function mintCmd(program: Command) {
   program
@@ -18,8 +22,15 @@ export function mintCmd(program: Command) {
     .description("Stake ETH/WETH to mint vETH (EVM only)")
     .option("--dry-run", "output unsigned tx without sending")
     .option("--weth", "use WETH instead of native ETH")
+    .option(
+      "--address <addr>",
+      "receiver wallet (dry-run without environment variable BIFROST_SKILL_PRIVATEKEY)",
+    )
     .action(
-      async (amount: string, cmdOpts: { dryRun?: boolean; weth?: boolean }) => {
+      async (
+        amount: string,
+        cmdOpts: { dryRun?: boolean; weth?: boolean; address?: string },
+      ) => {
         const opts = program.opts();
 
         let token: TokenInfo;
@@ -71,6 +82,14 @@ export function mintCmd(program: Command) {
             );
           }
 
+          const signer = resolveSigner({
+            dryRun: cmdOpts.dryRun,
+            address: cmdOpts.address,
+          });
+          if ("message" in signer) {
+            return printError(signer.code, signer.message, opts.json);
+          }
+
           let expectedVeth: bigint;
           try {
             expectedVeth = await client.readContract({
@@ -96,12 +115,11 @@ export function mintCmd(program: Command) {
               expectedVeth,
               amount,
               opts,
-              cmdOpts,
+              signer,
             );
           }
 
-          const wallet = loadWallet();
-          if (!wallet || cmdOpts.dryRun) {
+          if (signer.dryRun) {
             const data = encodeFunctionData({
               abi: vethAbi,
               functionName: "depositWithETH",
@@ -114,6 +132,7 @@ export function mintCmd(program: Command) {
                 expectedAmount: formatEther(expectedVeth),
                 expectedToken: "vETH",
                 mode: "unsigned",
+                from: formatAddress(signer.from),
                 unsigned: {
                   to: VETH_ADDRESS,
                   value: weiAmount.toString(),
@@ -126,7 +145,7 @@ export function mintCmd(program: Command) {
             return;
           }
 
-          const walletClient = getWalletClient(chain, wallet);
+          const walletClient = getWalletClient(chain, signer.wallet);
           const txHash = await walletClient.writeContract({
             address: VETH_ADDRESS,
             abi: vethAbi,
@@ -141,7 +160,7 @@ export function mintCmd(program: Command) {
               inputToken: "ETH",
               expectedAmount: formatEther(expectedVeth),
               expectedToken: "vETH",
-              from: formatAddress(wallet.address),
+              from: formatAddress(signer.wallet.address),
               txHash,
               explorer: `${chain.explorer}/tx/${txHash}`,
             },
@@ -165,13 +184,13 @@ async function mintWithWeth(
   expectedVeth: bigint,
   amount: string,
   opts: { json?: boolean },
-  cmdOpts: { dryRun?: boolean },
+  signer: ResolvedSigner,
 ) {
   const asJson = opts.json === true;
-  const wallet = loadWallet();
   const wethAddr = chain.weth as `0x${string}`;
 
-  if (!wallet || cmdOpts.dryRun) {
+  if (signer.dryRun) {
+    const receiver = signer.from;
     const approveData = encodeFunctionData({
       abi: erc20Abi,
       functionName: "approve",
@@ -180,7 +199,7 @@ async function mintWithWeth(
     const depositData = encodeFunctionData({
       abi: vethAbi,
       functionName: "deposit",
-      args: [weiAmount, "0x0000000000000000000000000000000000000000"],
+      args: [weiAmount, receiver],
     });
     print(
       {
@@ -190,6 +209,7 @@ async function mintWithWeth(
         expectedAmount: formatEther(expectedVeth),
         expectedToken: "vETH",
         mode: "unsigned",
+        from: formatAddress(receiver),
         wethAddress: wethAddr,
         steps: [
           {
@@ -214,8 +234,8 @@ async function mintWithWeth(
     return;
   }
 
-  const walletClient = getWalletClient(chain, wallet);
-  const receiver = wallet.address as `0x${string}`;
+  const walletClient = getWalletClient(chain, signer.wallet);
+  const receiver = signer.wallet.address as `0x${string}`;
 
   const allowance = await client.readContract({
     address: wethAddr,
@@ -256,7 +276,7 @@ async function mintWithWeth(
       inputToken: "WETH",
       expectedAmount: formatEther(expectedVeth),
       expectedToken: "vETH",
-      from: formatAddress(wallet.address),
+      from: formatAddress(signer.wallet.address),
       txHash,
       explorer: `${chain.explorer}/tx/${txHash}`,
     },

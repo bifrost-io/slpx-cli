@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { runJson } from "./helpers";
 
 describe("slpx claim", () => {
-  test("requires wallet or address", async () => {
+  test("dry-run requires private key or --address", async () => {
     const data = await runJson("claim --dry-run");
     expect(data.error).toBe(true);
-    expect(data.code).toBe("NO_WALLET");
+    expect(data.code).toBe("NO_PRIVATE_KEY_OR_ADDRESS");
   });
 
   test("returns nothing-to-claim for typical address", async () => {

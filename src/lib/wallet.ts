@@ -1,10 +1,80 @@
 import { getAddress } from "viem";
 import { type PrivateKeyAccount, privateKeyToAccount } from "viem/accounts";
 
-const ENV_KEY = "BIFROST_SKILL_PRIVATEKEY";
+export type ResolveSignerError = {
+  code: string;
+  message: string;
+};
+
+export type ResolvedSignerDry = {
+  dryRun: true;
+  wallet: PrivateKeyAccount | null;
+  from: `0x${string}`;
+};
+
+export type ResolvedSignerLive = {
+  dryRun: false;
+  wallet: PrivateKeyAccount;
+  from: `0x${string}`;
+};
+
+export type ResolvedSigner = ResolvedSignerDry | ResolvedSignerLive;
+
+/** Live txs require a valid private key. Dry-run allows key (preferred) or --address. */
+export function resolveSigner(options: {
+  dryRun?: boolean;
+  address?: string;
+}): ResolvedSigner | ResolveSignerError {
+  const dryRun = options.dryRun === true;
+  const wallet = loadWallet();
+
+  if (!dryRun) {
+    if (!wallet) {
+      return {
+        code: "NO_PRIVATE_KEY",
+        message:
+          "Environment variable BIFROST_SKILL_PRIVATEKEY is not configured. A private key is required to broadcast transactions.",
+      };
+    }
+    return {
+      dryRun: false,
+      wallet,
+      from: normalizeAddress(wallet.address),
+    };
+  }
+
+  if (wallet) {
+    return {
+      dryRun: true,
+      wallet,
+      from: normalizeAddress(wallet.address),
+    };
+  }
+
+  const raw = options.address?.trim();
+  if (raw) {
+    if (!isValidAddress(raw)) {
+      return {
+        code: "INVALID_ADDRESS",
+        message: "Invalid Ethereum address.",
+      };
+    }
+    return {
+      dryRun: true,
+      wallet: null,
+      from: normalizeAddress(raw),
+    };
+  }
+
+  return {
+    code: "NO_PRIVATE_KEY_OR_ADDRESS",
+    message:
+      "Dry-run requires environment variable BIFROST_SKILL_PRIVATEKEY or --address.",
+  };
+}
 
 export function loadWallet(): PrivateKeyAccount | null {
-  const raw = process.env[ENV_KEY]?.trim();
+  const raw = process.env.BIFROST_SKILL_PRIVATEKEY?.trim();
   if (!raw) return null;
 
   const key = raw.startsWith("0x") ? raw : `0x${raw}`;

@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { runJson } from "./helpers";
 
+const SAMPLE_ADDR = "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18";
+
 describe("slpx mint", () => {
   test("dry-run produces unsigned tx", async () => {
-    const data = await runJson("mint 0.01 --dry-run");
+    const data = await runJson(`mint 0.01 --dry-run --address ${SAMPLE_ADDR}`);
     expect(data.action).toBe("mint");
     expect(data.inputAmount).toBe("0.01");
     expect(data.inputToken).toBe("ETH");
@@ -15,7 +17,9 @@ describe("slpx mint", () => {
   });
 
   test("works on arbitrum chain", async () => {
-    const data = await runJson("mint 0.01 --dry-run --chain arbitrum");
+    const data = await runJson(
+      `mint 0.01 --dry-run --chain arbitrum --address ${SAMPLE_ADDR}`,
+    );
     expect(data.unsigned.chainId).toBe(42161);
   });
 
@@ -31,6 +35,12 @@ describe("slpx mint", () => {
     expect(data.code).toBe("INVALID_AMOUNT");
   });
 
+  test("dry-run requires private key or --address", async () => {
+    const data = await runJson("mint 0.01 --dry-run");
+    expect(data.error).toBe(true);
+    expect(data.code).toBe("NO_PRIVATE_KEY_OR_ADDRESS");
+  });
+
   test("rejects non-EVM token", async () => {
     const data = await runJson("mint 0.1 --dry-run --token vDOT");
     expect(data.error).toBe(true);
@@ -38,7 +48,9 @@ describe("slpx mint", () => {
   });
 
   test("--weth dry-run produces two-step unsigned tx", async () => {
-    const data = await runJson("mint 0.01 --dry-run --weth");
+    const data = await runJson(
+      `mint 0.01 --dry-run --weth --address ${SAMPLE_ADDR}`,
+    );
     expect(data.action).toBe("mint-weth");
     expect(data.inputAmount).toBe("0.01");
     expect(data.inputToken).toBe("WETH");
@@ -53,7 +65,9 @@ describe("slpx mint", () => {
   });
 
   test("--weth on arbitrum has correct WETH address", async () => {
-    const data = await runJson("mint 0.01 --dry-run --weth --chain arbitrum");
+    const data = await runJson(
+      `mint 0.01 --dry-run --weth --chain arbitrum --address ${SAMPLE_ADDR}`,
+    );
     expect(data.wethAddress).toBe("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1");
     expect(data.steps[1].chainId).toBe(42161);
   });

@@ -10,10 +10,10 @@ describe("slpx redeem", () => {
     expect(data.code).toBe("INVALID_AMOUNT");
   });
 
-  test("requires wallet or address", async () => {
+  test("dry-run requires private key or --address", async () => {
     const data = await runJson("redeem 0.1 --dry-run");
     expect(data.error).toBe(true);
-    expect(data.code).toBe("NO_WALLET");
+    expect(data.code).toBe("NO_PRIVATE_KEY_OR_ADDRESS");
   });
 
   test("rejects non-EVM token", async () => {

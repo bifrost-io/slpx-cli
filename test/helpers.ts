@@ -11,7 +11,10 @@ export interface RunResult {
   exitCode: number;
 }
 
-export function runCli(args: string): Promise<RunResult> {
+export function runCli(
+  args: string,
+  envOverrides?: Record<string, string | undefined>,
+): Promise<RunResult> {
   return new Promise((resolve) => {
     const child = spawn(
       "node",
@@ -23,6 +26,7 @@ export function runCli(args: string): Promise<RunResult> {
           BIFROST_CHAIN: undefined,
           BIFROST_RPC_URL: undefined,
           BIFROST_SKILL_PRIVATEKEY: undefined,
+          ...envOverrides,
         },
       },
     );
@@ -47,8 +51,11 @@ export function runCli(args: string): Promise<RunResult> {
   });
 }
 
-export async function runJson(args: string): Promise<unknown> {
-  const result = await runCli(`${args} --json`);
+export async function runJson(
+  args: string,
+  envOverrides?: Record<string, string | undefined>,
+): Promise<unknown> {
+  const result = await runCli(`${args} --json`, envOverrides);
   try {
     return JSON.parse(result.stdout);
   } catch {

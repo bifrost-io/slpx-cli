@@ -5,12 +5,7 @@ import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
 import { print, printError } from "../lib/output.js";
 import { type TokenInfo, resolveToken } from "../lib/tokens.js";
-import {
-  formatAddress,
-  isValidAddress,
-  loadWallet,
-  normalizeAddress,
-} from "../lib/wallet.js";
+import { formatAddress, resolveSigner } from "../lib/wallet.js";
 
 export function redeemCmd(program: Command) {
   program
@@ -19,7 +14,7 @@ export function redeemCmd(program: Command) {
     .option("--dry-run", "output unsigned tx without sending")
     .option(
       "--address <addr>",
-      "wallet address (required in dry-run without key)",
+      "wallet address (dry-run without environment variable BIFROST_SKILL_PRIVATEKEY)",
     )
     .action(
       async (
@@ -77,24 +72,15 @@ export function redeemCmd(program: Command) {
             );
           }
 
-          const wallet = loadWallet();
-          const userAddr = wallet?.address || cmdOpts.address;
+          const signer = resolveSigner({
+            dryRun: cmdOpts.dryRun,
+            address: cmdOpts.address,
+          });
+          if ("message" in signer) {
+            return printError(signer.code, signer.message, opts.json);
+          }
 
-          if (!userAddr) {
-            return printError(
-              "NO_WALLET",
-              "No wallet found. Provide --address or set BIFROST_SKILL_PRIVATEKEY in the environment.",
-              opts.json,
-            );
-          }
-          if (!isValidAddress(userAddr)) {
-            return printError(
-              "INVALID_ADDRESS",
-              "Invalid Ethereum address.",
-              opts.json,
-            );
-          }
-          const addr = normalizeAddress(userAddr);
+          const addr = signer.from;
 
           const balance = await client.readContract({
             address: VETH_ADDRESS,
@@ -127,7 +113,7 @@ export function redeemCmd(program: Command) {
             });
           }
 
-          if (!wallet || cmdOpts.dryRun) {
+          if (signer.dryRun) {
             const data = encodeFunctionData({
               abi: vethAbi,
               functionName: "redeem",
@@ -155,12 +141,12 @@ export function redeemCmd(program: Command) {
             return;
           }
 
-          const walletClient = getWalletClient(chain, wallet);
+          const walletClient = getWalletClient(chain, signer.wallet);
           const txHash = await walletClient.writeContract({
             address: VETH_ADDRESS,
             abi: vethAbi,
             functionName: "redeem",
-            args: [shares, wallet.address, wallet.address],
+            args: [shares, signer.wallet.address, signer.wallet.address],
           });
 
           print(
@@ -172,7 +158,7 @@ export function redeemCmd(program: Command) {
               expectedToken: "ETH",
               warning:
                 "Redemption is NOT instant. ETH enters a processing queue.",
-              from: formatAddress(wallet.address),
+              from: formatAddress(signer.wallet.address),
               txHash,
               explorer: `${chain.explorer}/tx/${txHash}`,
             },

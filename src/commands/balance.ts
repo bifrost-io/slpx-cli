@@ -8,16 +8,17 @@ import { type TokenInfo, resolveToken } from "../lib/tokens.js";
 import {
   formatAddress,
   isValidAddress,
+  loadWallet,
   normalizeAddress,
 } from "../lib/wallet.js";
 
 export function balanceCmd(program: Command) {
   program
-    .command("balance <address>")
+    .command("balance [address]")
     .description(
-      "Query vETH balance for address(es) — comma-separated for batch (EVM only)",
+      "Query vETH balance — omit address to use environment variable BIFROST_SKILL_PRIVATEKEY; comma-separated for batch (EVM only)",
     )
-    .action(async (rawAddress: string) => {
+    .action(async (rawAddress?: string) => {
       const opts = program.opts();
 
       let token: TokenInfo;
@@ -34,18 +35,39 @@ export function balanceCmd(program: Command) {
         );
       }
 
-      const addresses = rawAddress
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
+      const trimmed = rawAddress?.trim() ?? "";
+      let addresses: string[];
 
-      for (const addr of addresses) {
-        if (!isValidAddress(addr)) {
+      if (!trimmed) {
+        const wallet = loadWallet();
+        if (!wallet) {
           return printError(
-            "INVALID_ADDRESS",
-            "Invalid Ethereum address. Expected 0x + 40 hex chars.",
+            "NO_ADDRESS_OR_PRIVATE_KEY",
+            "Provide an address argument or set environment variable BIFROST_SKILL_PRIVATEKEY.",
             opts.json,
           );
+        }
+        addresses = [wallet.address];
+      } else {
+        addresses = trimmed
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean);
+        if (addresses.length === 0) {
+          return printError(
+            "INVALID_ADDRESS",
+            "No valid addresses. Expected 0x + 40 hex chars (comma-separated for batch).",
+            opts.json,
+          );
+        }
+        for (const addr of addresses) {
+          if (!isValidAddress(addr)) {
+            return printError(
+              "INVALID_ADDRESS",
+              "Invalid Ethereum address. Expected 0x + 40 hex chars.",
+              opts.json,
+            );
+          }
         }
       }
 

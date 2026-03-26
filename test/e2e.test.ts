@@ -39,11 +39,10 @@ describe("E2E workflows", () => {
   });
 
   test("dry-run mint → check status", async () => {
-    const mint = await runJson("mint 0.01 --dry-run");
+    const addr = "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18";
+    const mint = await runJson(`mint 0.01 --dry-run --address ${addr}`);
     expect(mint.mode).toBe("unsigned");
     expect(mint.unsigned).toBeDefined();
-
-    const addr = "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18";
     const status = await runJson(`status ${addr}`);
     expect(Number.parseFloat(status.claimableEth)).toBeGreaterThanOrEqual(0);
   });

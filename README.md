@@ -59,14 +59,15 @@ npx -y @bifrostio/slpx-cli info --json
 
 | Command | Purpose |
 | ------- | ------- |
-| `balance <address>` | vETH balance and ETH value; comma-separated addresses for batch |
-| `status <address>` | Redemption queue: claimable / pending + time hint |
+| `balance [address]` | vETH balance and ETH value; omit address to use `BIFROST_SKILL_PRIVATEKEY`; comma-separated for batch |
+| `status [address]` | Redemption queue: claimable / pending + time hint; omit address to use `BIFROST_SKILL_PRIVATEKEY` |
 | `mint <amount>` | Stake ETH or WETH (`--weth`) → vETH |
 | `redeem <amount>` | Start vETH redemption (**queued; not instant**, often ~1–3 days) |
 | `claim` | Claim ETH after redemption completes |
 
 ```bash
 npx -y @bifrostio/slpx-cli balance 0xYourAddress --chain base --json
+npx -y @bifrostio/slpx-cli status --json
 npx -y @bifrostio/slpx-cli status 0xYourAddress --json
 npx -y @bifrostio/slpx-cli mint 0.1 --json --dry-run
 npx -y @bifrostio/slpx-cli mint 0.1 --weth --json --dry-run
@@ -82,13 +83,13 @@ npx -y @bifrostio/slpx-cli claim --json --dry-run --address 0xYourAddress
 | -------- | ------- |
 | `BIFROST_CHAIN` | Default chain if `--chain` is omitted |
 | `BIFROST_RPC_URL` | Default RPC if `--rpc` is omitted |
-| `BIFROST_SKILL_PRIVATEKEY` | Hex private key for signing (omit for `--dry-run` / read-only) |
+| `BIFROST_SKILL_PRIVATEKEY` | Hex private key for **broadcast** txs; for `--dry-run`, either set this or pass `--address` (`mint` / `redeem` / `claim`) |
 
 ## JSON errors
 
 With `--json`, failures are a single JSON object: `{ "error": true, "code": "...", "message": "..." }`.
 
-Common codes: `INVALID_TOKEN`, `INVALID_CHAIN`, `INVALID_ADDRESS`, `INVALID_AMOUNT`, `UNSUPPORTED_TOKEN`, `CONTRACT_PAUSED`, `INSUFFICIENT_BALANCE`, `NOTHING_TO_CLAIM`, `NO_WALLET`, `RPC_ERROR`, `API_ERROR`, `TX_ERROR`, `CLI_ERROR`.
+Common codes: `INVALID_TOKEN`, `INVALID_CHAIN`, `INVALID_ADDRESS`, `INVALID_AMOUNT`, `UNSUPPORTED_TOKEN`, `CONTRACT_PAUSED`, `INSUFFICIENT_BALANCE`, `NOTHING_TO_CLAIM`, `NO_PRIVATE_KEY`, `NO_PRIVATE_KEY_OR_ADDRESS`, `NO_ADDRESS_OR_PRIVATE_KEY`, `RPC_ERROR`, `API_ERROR`, `TX_ERROR`, `CLI_ERROR`.
 
 ## Operational notes
 
