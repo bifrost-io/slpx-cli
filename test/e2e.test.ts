@@ -8,7 +8,7 @@ describe("E2E workflows", () => {
 
     const rate = await runJson("rate 1");
     expect(rate.source).toBe("api");
-    expect(Number.parseFloat(rate.output)).toBeGreaterThan(0);
+    expect(Number.parseFloat(rate.outputAmount)).toBeGreaterThan(0);
 
     const apy = await runJson("apy");
     expect(Number.parseFloat(apy.totalApy)).toBeGreaterThan(0);
@@ -34,7 +34,7 @@ describe("E2E workflows", () => {
     for (const chain of chains) {
       const data = await runJson(`balance ${addr} --chain ${chain}`);
       expect(data.chain).toBe(chain);
-      expect(data.vethBalance).toContain("vETH");
+      expect(Number.parseFloat(data.vethBalance)).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -45,7 +45,7 @@ describe("E2E workflows", () => {
 
     const addr = "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18";
     const status = await runJson(`status ${addr}`);
-    expect(status.claimableEth).toContain("ETH");
+    expect(Number.parseFloat(status.claimableEth)).toBeGreaterThanOrEqual(0);
   });
 
   test("all 10 tokens return valid rates", async () => {
@@ -63,8 +63,8 @@ describe("E2E workflows", () => {
     ];
     for (const token of tokens) {
       const data = await runJson(`rate --token ${token}`);
-      expect(data.token).toBe(token);
-      expect(Number.parseFloat(data.output)).toBeGreaterThan(0);
+      expect(data.outputToken).toBe(token);
+      expect(Number.parseFloat(data.outputAmount)).toBeGreaterThan(0);
     }
   });
 

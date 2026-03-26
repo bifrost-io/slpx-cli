@@ -4,17 +4,24 @@ import { runCli, runJson } from "./helpers";
 describe("slpx rate", () => {
   test("returns rate with default amount (1 ETH)", async () => {
     const data = await runJson("rate");
-    expect(data.input).toBe("1 ETH");
-    expect(data.output).toContain("vETH");
-    expect(data.rate).toContain("1 ETH =");
-    expect(data.token).toBe("vETH");
+    expect(data.inputAmount).toBe("1");
+    expect(data.inputToken).toBe("ETH");
+    expect(data.outputToken).toBe("vETH");
+    expect(Number.parseFloat(data.outputAmount)).toBeGreaterThan(0);
+    expect(Number.parseFloat(data.rate)).toBeGreaterThan(0);
+    expect(Number.parseFloat(data.rate)).toBeCloseTo(
+      Number.parseFloat(data.inputAmount) /
+        Number.parseFloat(data.outputAmount),
+      5,
+    );
     expect(data.source).toBe("api");
   });
 
   test("returns rate for custom amount", async () => {
     const data = await runJson("rate 10");
-    expect(data.input).toBe("10 ETH");
-    const num = Number.parseFloat(data.output);
+    expect(data.inputAmount).toBe("10");
+    expect(data.inputToken).toBe("ETH");
+    const num = Number.parseFloat(data.outputAmount);
     expect(num).toBeGreaterThan(5);
     expect(num).toBeLessThan(15);
   });
@@ -22,9 +29,9 @@ describe("slpx rate", () => {
   test("returns rate for all vTokens", async () => {
     for (const token of ["vDOT", "vKSM", "vBNC", "vGLMR", "vMOVR"]) {
       const data = await runJson(`rate --token ${token}`);
-      expect(data.token).toBe(token);
+      expect(data.outputToken).toBe(token);
       expect(data.source).toBe("api");
-      const num = Number.parseFloat(data.output);
+      const num = Number.parseFloat(data.outputAmount);
       expect(num).toBeGreaterThan(0);
     }
   });

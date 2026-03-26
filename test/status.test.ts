@@ -6,8 +6,10 @@ describe("slpx status", () => {
 
   test("returns redemption status", async () => {
     const data = await runJson(`status ${ADDR}`);
-    expect(data.claimableEth).toContain("ETH");
-    expect(data.pendingAmount).toContain("ETH");
+    expect(Number.parseFloat(data.claimableEth)).toBeGreaterThanOrEqual(0);
+    expect(Number.parseFloat(data.pendingEthAmount)).toBeGreaterThanOrEqual(0);
+    expect(String(data.claimableEth)).not.toMatch(/\s/);
+    expect(String(data.pendingEthAmount)).not.toMatch(/\s/);
     expect(data.chain).toBe("ethereum");
     expect(data.hint).toBeDefined();
   });

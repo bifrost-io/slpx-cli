@@ -59,14 +59,15 @@ export function rateCmd(program: Command) {
         const stats = await fetchTokenStats(token.id);
         const rate = deriveRate(stats);
         const outputAmount = Number.parseFloat(amount) * rate.baseToToken;
+        const precision = 6;
 
         print(
           {
-            input: `${amount} ${token.baseAsset}`,
-            output: `${outputAmount.toFixed(6)} ${token.id}`,
-            rate: `1 ${token.baseAsset} = ${rate.baseToToken.toFixed(6)} ${token.id}`,
-            reverseRate: `1 ${token.id} = ${rate.tokenToBase.toFixed(6)} ${token.baseAsset}`,
-            token: token.id,
+            inputToken: token.baseAsset,
+            outputToken: token.id,
+            inputAmount: amount,
+            outputAmount: outputAmount.toFixed(precision),
+            rate: rate.tokenToBase.toFixed(precision),
             source: "api",
           },
           opts.json,
@@ -88,11 +89,18 @@ export function rateCmd(program: Command) {
             functionName: "convertToShares",
             args: [parseEther(amount)],
           });
+          const sharesStr = formatEther(shares);
+          const outNum = Number.parseFloat(sharesStr);
+          const amtNum = Number.parseFloat(amount);
+          const tokenToBase = amtNum / outNum;
+          const precision = 6;
           print(
             {
-              input: `${amount} ETH`,
-              output: `${formatEther(shares)} vETH`,
-              token: "vETH",
+              inputToken: "ETH",
+              outputToken: "vETH",
+              inputAmount: amount,
+              outputAmount: outNum.toFixed(precision),
+              rate: tokenToBase.toFixed(precision),
               source: "on-chain",
               chain: chain.name,
             },

@@ -15,7 +15,7 @@ const wantsJson = process.argv.includes("--json");
 const program = new Command()
   .name("slpx")
   .description("Bifrost SLPx liquid staking CLI — all vTokens")
-  .version("0.1.0-alpha.0");
+  .version("0.1.1");
 
 if (wantsJson) {
   program.exitOverride();

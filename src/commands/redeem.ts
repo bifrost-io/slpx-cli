@@ -105,7 +105,7 @@ export function redeemCmd(program: Command) {
           if (balance < shares) {
             return printError(
               "INSUFFICIENT_BALANCE",
-              `Insufficient vETH. Balance: ${formatEther(balance)} vETH, Requested: ${amount} vETH.`,
+              `Insufficient vETH. Balance: ${formatEther(balance)}, requested: ${amount}.`,
               opts.json,
             );
           }
@@ -136,8 +136,10 @@ export function redeemCmd(program: Command) {
             print(
               {
                 action: "redeem",
-                input: `${amount} vETH`,
-                expected: `${formatEther(expectedEth)} ETH`,
+                inputAmount: amount,
+                inputToken: "vETH",
+                expectedAmount: formatEther(expectedEth),
+                expectedToken: "ETH",
                 mode: "unsigned",
                 warning:
                   "Redemption is NOT instant. ETH enters a processing queue.",
@@ -164,8 +166,10 @@ export function redeemCmd(program: Command) {
           print(
             {
               action: "redeem",
-              input: `${amount} vETH`,
-              expected: `${formatEther(expectedEth)} ETH`,
+              inputAmount: amount,
+              inputToken: "vETH",
+              expectedAmount: formatEther(expectedEth),
+              expectedToken: "ETH",
               warning:
                 "Redemption is NOT instant. ETH enters a processing queue.",
               from: formatAddress(wallet.address),

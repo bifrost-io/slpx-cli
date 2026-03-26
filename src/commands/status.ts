@@ -72,8 +72,8 @@ export function statusCmd(program: Command) {
         print(
           {
             address: formatAddress(address),
-            claimableEth: `${formatEther(claimable)} ETH`,
-            pendingAmount: `${formatEther(pending)} ETH`,
+            claimableEth: formatEther(claimable),
+            pendingEthAmount: formatEther(pending),
             chain: chain.name,
             hint,
           },

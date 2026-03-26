@@ -109,8 +109,10 @@ export function mintCmd(program: Command) {
             print(
               {
                 action: "mint",
-                input: `${amount} ETH`,
-                expected: `${formatEther(expectedVeth)} vETH`,
+                inputAmount: amount,
+                inputToken: "ETH",
+                expectedAmount: formatEther(expectedVeth),
+                expectedToken: "vETH",
                 mode: "unsigned",
                 unsigned: {
                   to: VETH_ADDRESS,
@@ -135,8 +137,10 @@ export function mintCmd(program: Command) {
           print(
             {
               action: "mint",
-              input: `${amount} ETH`,
-              expected: `${formatEther(expectedVeth)} vETH`,
+              inputAmount: amount,
+              inputToken: "ETH",
+              expectedAmount: formatEther(expectedVeth),
+              expectedToken: "vETH",
               from: formatAddress(wallet.address),
               txHash,
               explorer: `${chain.explorer}/tx/${txHash}`,
@@ -181,8 +185,10 @@ async function mintWithWeth(
     print(
       {
         action: "mint-weth",
-        input: `${amount} WETH`,
-        expected: `${formatEther(expectedVeth)} vETH`,
+        inputAmount: amount,
+        inputToken: "WETH",
+        expectedAmount: formatEther(expectedVeth),
+        expectedToken: "vETH",
         mode: "unsigned",
         wethAddress: wethAddr,
         steps: [
@@ -246,8 +252,10 @@ async function mintWithWeth(
   print(
     {
       action: "mint-weth",
-      input: `${amount} WETH`,
-      expected: `${formatEther(expectedVeth)} vETH`,
+      inputAmount: amount,
+      inputToken: "WETH",
+      expectedAmount: formatEther(expectedVeth),
+      expectedToken: "vETH",
       from: formatAddress(wallet.address),
       txHash,
       explorer: `${chain.explorer}/tx/${txHash}`,

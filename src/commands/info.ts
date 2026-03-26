@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { vethAbi } from "../lib/abi.js";
-import { deriveRate, fetchTokenStats } from "../lib/api.js";
+import { type TokenStats, deriveRate, fetchTokenStats } from "../lib/api.js";
 import {
   type ChainConfig,
   VETH_ADDRESS,
@@ -25,55 +25,69 @@ export function infoCmd(program: Command) {
         return printError("INVALID_TOKEN", (e as Error).message, opts.json);
       }
 
+      let chain: ChainConfig | undefined;
       if (token.evm) {
-        let chain: ChainConfig;
         try {
           chain = resolveChain(opts);
         } catch (e) {
           return printError("INVALID_CHAIN", (e as Error).message, opts.json);
         }
-        try {
-          await validateCustomRpc(chain, opts);
-        } catch (e) {
-          return printError(
-            "RPC_ERROR",
-            `Custom RPC unreachable: ${(e as Error).message}`,
-            opts.json,
-          );
-        }
       }
 
       try {
-        const stats = await fetchTokenStats(token.id);
+        let stats: TokenStats;
+        let paused: boolean | undefined;
+
+        if (token.evm && chain) {
+          try {
+            await validateCustomRpc(chain, opts);
+          } catch (e) {
+            return printError(
+              "RPC_ERROR",
+              `Custom RPC unreachable: ${(e as Error).message}`,
+              opts.json,
+            );
+          }
+          const client = getPublicClient(chain);
+          [stats, paused] = await Promise.all([
+            fetchTokenStats(token.id),
+            client
+              .readContract({
+                address: VETH_ADDRESS,
+                abi: vethAbi,
+                functionName: "paused",
+              })
+              .then((x) => x as boolean)
+              .catch((): undefined => undefined),
+          ]);
+        } else {
+          stats = await fetchTokenStats(token.id);
+        }
+
         const rate = deriveRate(stats);
+        const precision = 6;
 
         const result: Record<string, unknown> = {
           protocol: "Bifrost SLPx",
-          token: token.id,
-          rate: `1 ${token.baseAsset} = ${rate.baseToToken.toFixed(6)} ${token.id}`,
-          reverseRate: `1 ${token.id} = ${rate.tokenToBase.toFixed(6)} ${token.baseAsset}`,
+          inputAmount: "1",
+          outputAmount: rate.baseToToken.toFixed(precision),
+          inputToken: token.baseAsset,
+          outputToken: token.id,
+          rate: rate.tokenToBase.toFixed(precision),
           totalApy: `${stats.apy}%`,
           baseApy: `${stats.apyBase}%`,
           rewardApy: `${stats.apyReward}%`,
           tvl: `$${stats.tvl.toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
-          totalStaked: `${stats.tvm.toFixed(4)} ${token.baseAsset}`,
-          totalSupply: `${stats.totalIssuance.toFixed(4)} ${token.id}`,
+          totalStaked: stats.tvm.toFixed(4),
+          totalSupply: stats.totalIssuance.toFixed(4),
           holders: stats.holders,
         };
 
         if (token.evm) {
           result.contract = VETH_ADDRESS;
           result.chains = "ethereum, base, optimism, arbitrum";
-          try {
-            const chain = resolveChain(opts);
-            const client = getPublicClient(chain);
-            result.paused = (await client.readContract({
-              address: VETH_ADDRESS,
-              abi: vethAbi,
-              functionName: "paused",
-            })) as boolean;
-          } catch {
-            /* best-effort */
+          if (typeof paused === "boolean") {
+            result.paused = paused;
           }
         }
 

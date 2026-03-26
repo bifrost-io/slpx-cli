@@ -1,10 +1,20 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runCli, runJson } from "./helpers";
 
+const projectRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const pkgVersion = (
+  JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8")) as {
+    version: string;
+  }
+).version;
+
 describe("CLI general", () => {
-  test("--version outputs version", async () => {
+  test("--version matches package.json", async () => {
     const result = await runCli("--version");
-    expect(result.stdout).toBe("0.1.0-alpha.0");
+    expect(result.stdout).toBe(pkgVersion);
     expect(result.exitCode).toBe(0);
   });
 

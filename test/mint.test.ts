@@ -5,8 +5,10 @@ describe("slpx mint", () => {
   test("dry-run produces unsigned tx", async () => {
     const data = await runJson("mint 0.01 --dry-run");
     expect(data.action).toBe("mint");
-    expect(data.input).toBe("0.01 ETH");
-    expect(data.expected).toContain("vETH");
+    expect(data.inputAmount).toBe("0.01");
+    expect(data.inputToken).toBe("ETH");
+    expect(Number.parseFloat(data.expectedAmount)).toBeGreaterThan(0);
+    expect(data.expectedToken).toBe("vETH");
     expect(data.mode).toBe("unsigned");
     expect(data.unsigned).toBeDefined();
     expect(data.unsigned.to).toBe("0xc3997ff81f2831929499c4eE4Ee4e0F08F42D4D8");
@@ -38,8 +40,10 @@ describe("slpx mint", () => {
   test("--weth dry-run produces two-step unsigned tx", async () => {
     const data = await runJson("mint 0.01 --dry-run --weth");
     expect(data.action).toBe("mint-weth");
-    expect(data.input).toBe("0.01 WETH");
-    expect(data.expected).toContain("vETH");
+    expect(data.inputAmount).toBe("0.01");
+    expect(data.inputToken).toBe("WETH");
+    expect(Number.parseFloat(data.expectedAmount)).toBeGreaterThan(0);
+    expect(data.expectedToken).toBe("vETH");
     expect(data.mode).toBe("unsigned");
     expect(data.wethAddress).toBeDefined();
     expect(data.steps).toBeDefined();

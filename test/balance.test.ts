@@ -7,8 +7,10 @@ describe("slpx balance", () => {
   test("returns balance on ethereum", async () => {
     const data = await runJson(`balance ${ADDR}`);
     expect(data.address).toContain("0x742d");
-    expect(data.vethBalance).toContain("vETH");
-    expect(data.ethValue).toContain("ETH");
+    expect(Number.parseFloat(data.vethBalance)).toBeGreaterThanOrEqual(0);
+    expect(Number.parseFloat(data.ethValue)).toBeGreaterThanOrEqual(0);
+    expect(String(data.vethBalance)).not.toMatch(/\s/);
+    expect(String(data.ethValue)).not.toMatch(/\s/);
     expect(data.chain).toBe("ethereum");
   });
 
@@ -34,8 +36,12 @@ describe("slpx balance", () => {
     const data = await runJson(`balance ${ADDR},${ADDR2}`);
     expect(data.results).toBeDefined();
     expect(data.results.length).toBe(2);
-    expect(data.results[0].vethBalance).toContain("vETH");
-    expect(data.results[1].vethBalance).toContain("vETH");
+    expect(
+      Number.parseFloat(data.results[0].vethBalance),
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      Number.parseFloat(data.results[1].vethBalance),
+    ).toBeGreaterThanOrEqual(0);
     expect(data.chain).toBe("ethereum");
   });
 

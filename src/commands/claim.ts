@@ -87,7 +87,7 @@ export function claimCmd(program: Command) {
           print(
             {
               action: "claim",
-              claimable: `${formatEther(claimable)} ETH`,
+              claimableEth: formatEther(claimable),
               mode: "unsigned",
               unsigned: {
                 to: VETH_ADDRESS,
@@ -111,7 +111,7 @@ export function claimCmd(program: Command) {
         print(
           {
             action: "claim",
-            claimed: `${formatEther(claimable)} ETH`,
+            claimedEth: formatEther(claimable),
             from: formatAddress(wallet.address),
             txHash,
             explorer: `${chain.explorer}/tx/${txHash}`,

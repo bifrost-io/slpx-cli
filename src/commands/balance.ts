@@ -76,8 +76,8 @@ export function balanceCmd(program: Command) {
           print(
             {
               address: formatAddress(addresses[0]),
-              vethBalance: `${formatEther(balance)} vETH`,
-              ethValue: `${formatEther(ethValue)} ETH`,
+              vethBalance: formatEther(balance),
+              ethValue: formatEther(ethValue),
               chain: chain.name,
             },
             opts.json,
@@ -102,8 +102,8 @@ export function balanceCmd(program: Command) {
             });
             return {
               address: formatAddress(raw),
-              vethBalance: `${formatEther(balance)} vETH`,
-              ethValue: `${formatEther(ethValue)} ETH`,
+              vethBalance: formatEther(balance),
+              ethValue: formatEther(ethValue),
             };
           }),
         );
