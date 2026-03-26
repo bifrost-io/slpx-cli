@@ -80,3 +80,7 @@ export function resolveChain(opts: {
   }
   return config;
 }
+
+export function explorerTxUrl(chain: ChainConfig, txHash: string): string {
+  return `${chain.explorer}/tx/${txHash}`;
+}

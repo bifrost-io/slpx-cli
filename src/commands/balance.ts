@@ -1,10 +1,10 @@
 import type { Command } from "commander";
 import { formatEther } from "viem";
 import { vethAbi } from "../lib/abi.js";
-import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import { VETH_ADDRESS } from "../lib/chains.js";
 import { getPublicClient } from "../lib/client.js";
+import { evmTokenError, resolveChainOrError } from "../lib/evm-setup.js";
 import { print, printError } from "../lib/output.js";
-import { type TokenInfo, resolveToken } from "../lib/tokens.js";
 import {
   formatAddress,
   isValidAddress,
@@ -21,18 +21,9 @@ export function balanceCmd(program: Command) {
     .action(async (rawAddress?: string) => {
       const opts = program.opts();
 
-      let token: TokenInfo;
-      try {
-        token = resolveToken(opts.token);
-      } catch (e) {
-        return printError("INVALID_TOKEN", (e as Error).message, opts.json);
-      }
-      if (!token.evm) {
-        return printError(
-          "UNSUPPORTED_TOKEN",
-          `On-chain balance query only supports vETH (EVM). ${token.id} is on Substrate chains.`,
-          opts.json,
-        );
+      const tokenErr = evmTokenError(opts, "On-chain balance query");
+      if (tokenErr) {
+        return printError(tokenErr.code, tokenErr.message, opts.json);
       }
 
       const trimmed = rawAddress?.trim() ?? "";
@@ -71,11 +62,9 @@ export function balanceCmd(program: Command) {
         }
       }
 
-      let chain: ChainConfig;
-      try {
-        chain = resolveChain(opts);
-      } catch (e) {
-        return printError("INVALID_CHAIN", (e as Error).message, opts.json);
+      const chain = resolveChainOrError(opts);
+      if ("code" in chain) {
+        return printError(chain.code, chain.message, opts.json);
       }
 
       try {

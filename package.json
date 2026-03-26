@@ -1,6 +1,6 @@
 {
   "name": "@bifrostio/slpx-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Bifrost SLPx liquid staking CLI — all vTokens",
   "homepage": "https://bifrost.io",
   "repository": {

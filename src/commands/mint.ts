@@ -6,10 +6,19 @@ import {
   parseEther,
 } from "viem";
 import { erc20Abi, vethAbi } from "../lib/abi.js";
-import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import {
+  type ChainConfig,
+  VETH_ADDRESS,
+  explorerTxUrl,
+} from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
+import { evmTokenError, resolveChainOrError } from "../lib/evm-setup.js";
 import { print, printError } from "../lib/output.js";
-import { type TokenInfo, resolveToken } from "../lib/tokens.js";
+import { isPositiveAmount } from "../lib/validation.js";
+import {
+  readExpectedSharesFromDeposit,
+  readVethPaused,
+} from "../lib/veth-read.js";
 import {
   type ResolvedSigner,
   formatAddress,
@@ -33,24 +42,12 @@ export function mintCmd(program: Command) {
       ) => {
         const opts = program.opts();
 
-        let token: TokenInfo;
-        try {
-          token = resolveToken(opts.token);
-        } catch (e) {
-          return printError("INVALID_TOKEN", (e as Error).message, opts.json);
-        }
-        if (!token.evm) {
-          return printError(
-            "UNSUPPORTED_TOKEN",
-            `Mint only supports vETH (EVM). ${token.id} is on Substrate chains.`,
-            opts.json,
-          );
+        const tokenErr = evmTokenError(opts, "Mint");
+        if (tokenErr) {
+          return printError(tokenErr.code, tokenErr.message, opts.json);
         }
 
-        if (
-          Number.isNaN(Number.parseFloat(amount)) ||
-          Number.parseFloat(amount) <= 0
-        ) {
+        if (!isPositiveAmount(amount)) {
           return printError(
             "INVALID_AMOUNT",
             "Amount must be a positive number.",
@@ -58,22 +55,16 @@ export function mintCmd(program: Command) {
           );
         }
 
-        let chain: ChainConfig;
-        try {
-          chain = resolveChain(opts);
-        } catch (e) {
-          return printError("INVALID_CHAIN", (e as Error).message, opts.json);
+        const chain = resolveChainOrError(opts);
+        if ("code" in chain) {
+          return printError(chain.code, chain.message, opts.json);
         }
 
         try {
           const client = getPublicClient(chain);
           const weiAmount = parseEther(amount);
 
-          const paused = await client.readContract({
-            address: VETH_ADDRESS,
-            abi: vethAbi,
-            functionName: "paused",
-          });
+          const paused = await readVethPaused(client);
           if (paused) {
             return printError(
               "CONTRACT_PAUSED",
@@ -90,22 +81,10 @@ export function mintCmd(program: Command) {
             return printError(signer.code, signer.message, opts.json);
           }
 
-          let expectedVeth: bigint;
-          try {
-            expectedVeth = await client.readContract({
-              address: VETH_ADDRESS,
-              abi: vethAbi,
-              functionName: "previewDeposit",
-              args: [weiAmount],
-            });
-          } catch {
-            expectedVeth = await client.readContract({
-              address: VETH_ADDRESS,
-              abi: vethAbi,
-              functionName: "convertToShares",
-              args: [weiAmount],
-            });
-          }
+          const expectedVeth = await readExpectedSharesFromDeposit(
+            client,
+            weiAmount,
+          );
 
           if (cmdOpts.weth) {
             return mintWithWeth(
@@ -162,7 +141,7 @@ export function mintCmd(program: Command) {
               expectedToken: "vETH",
               from: formatAddress(signer.wallet.address),
               txHash,
-              explorer: `${chain.explorer}/tx/${txHash}`,
+              explorer: explorerTxUrl(chain, txHash),
             },
             opts.json,
           );
@@ -178,7 +157,7 @@ export function mintCmd(program: Command) {
 }
 
 async function mintWithWeth(
-  chain: ReturnType<typeof resolveChain>,
+  chain: ChainConfig,
   client: PublicClient,
   weiAmount: bigint,
   expectedVeth: bigint,
@@ -256,7 +235,7 @@ async function mintWithWeth(
         action: "mint-weth-approve",
         desc: "WETH spending approved",
         txHash: approveTx,
-        explorer: `${chain.explorer}/tx/${approveTx}`,
+        explorer: explorerTxUrl(chain, approveTx),
       },
       asJson,
     );
@@ -278,7 +257,7 @@ async function mintWithWeth(
       expectedToken: "vETH",
       from: formatAddress(signer.wallet.address),
       txHash,
-      explorer: `${chain.explorer}/tx/${txHash}`,
+      explorer: explorerTxUrl(chain, txHash),
     },
     asJson,
   );

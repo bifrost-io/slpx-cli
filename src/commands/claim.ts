@@ -1,10 +1,10 @@
 import type { Command } from "commander";
 import { encodeFunctionData, formatEther } from "viem";
 import { vethAbi } from "../lib/abi.js";
-import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import { VETH_ADDRESS, explorerTxUrl } from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
+import { evmTokenError, resolveChainOrError } from "../lib/evm-setup.js";
 import { print, printError } from "../lib/output.js";
-import { type TokenInfo, resolveToken } from "../lib/tokens.js";
 import { formatAddress, resolveSigner } from "../lib/wallet.js";
 
 export function claimCmd(program: Command) {
@@ -19,25 +19,14 @@ export function claimCmd(program: Command) {
     .action(async (cmdOpts: { dryRun?: boolean; address?: string }) => {
       const opts = program.opts();
 
-      let token: TokenInfo;
-      try {
-        token = resolveToken(opts.token);
-      } catch (e) {
-        return printError("INVALID_TOKEN", (e as Error).message, opts.json);
-      }
-      if (!token.evm) {
-        return printError(
-          "UNSUPPORTED_TOKEN",
-          `Claim only supports vETH (EVM). ${token.id} is on Substrate chains.`,
-          opts.json,
-        );
+      const tokenErr = evmTokenError(opts, "Claim");
+      if (tokenErr) {
+        return printError(tokenErr.code, tokenErr.message, opts.json);
       }
 
-      let chain: ChainConfig;
-      try {
-        chain = resolveChain(opts);
-      } catch (e) {
-        return printError("INVALID_CHAIN", (e as Error).message, opts.json);
+      const chain = resolveChainOrError(opts);
+      if ("code" in chain) {
+        return printError(chain.code, chain.message, opts.json);
       }
 
       try {
@@ -103,7 +92,7 @@ export function claimCmd(program: Command) {
             claimedEth: formatEther(claimable),
             from: formatAddress(signer.wallet.address),
             txHash,
-            explorer: `${chain.explorer}/tx/${txHash}`,
+            explorer: explorerTxUrl(chain, txHash),
           },
           opts.json,
         );

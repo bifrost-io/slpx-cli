@@ -5,19 +5,24 @@ Command-line tool for **Bifrost SLPx** liquid staking: exchange rates, APY (opti
 - **Query commands** (`rate`, `apy`, `info`) work for all supported **vTokens** (vETH, vDOT, vKSM, …) via the Bifrost API.
 - **On-chain commands** (`balance`, `status`, `mint`, `redeem`, `claim`) are **vETH-only** on **Ethereum, Base, Optimism, Arbitrum**.
 
-## Install & run
+## How to install
+
+### Run directly
 
 ```bash
-npx -y @bifrostio/slpx-cli --help
+npx -y @bifrostio/slpx-cli
 ```
 
 ### Global install (optional)
 
 ```bash
 npm i -g @bifrostio/slpx-cli
-slpx-cli --help
 ```
 
+Then run:
+```bash
+slpx-cli
+```
 ## Global options
 
 | Option | Description | Default |
@@ -101,14 +106,37 @@ Common codes: `INVALID_TOKEN`, `INVALID_CHAIN`, `INVALID_ADDRESS`, `INVALID_AMOU
 
 ## Development
 
+### Install dependencies
+
 ```bash
 bun install
-bun run build
-bun test
-bun run dev -- --help
 ```
 
-Lint / format: `bun run lint`, `bun run format`, `bun run check:biome`.
+### Run tests
+
+```bash
+bun run test:all
+```
+
+### Build
+
+```bash
+bun run build
+```
+
+### Run dev
+
+```bash
+bun run dev
+```
+
+### Lint / format: 
+
+`bun run lint` 
+
+`bun run format`
+
+`bun run check:biome`
 
 ## License
 

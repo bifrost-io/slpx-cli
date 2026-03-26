@@ -1,10 +1,12 @@
 import type { Command } from "commander";
 import { encodeFunctionData, formatEther, parseEther } from "viem";
 import { vethAbi } from "../lib/abi.js";
-import { type ChainConfig, VETH_ADDRESS, resolveChain } from "../lib/chains.js";
+import { VETH_ADDRESS, explorerTxUrl } from "../lib/chains.js";
 import { getPublicClient, getWalletClient } from "../lib/client.js";
+import { evmTokenError, resolveChainOrError } from "../lib/evm-setup.js";
 import { print, printError } from "../lib/output.js";
-import { type TokenInfo, resolveToken } from "../lib/tokens.js";
+import { isPositiveAmount } from "../lib/validation.js";
+import { readExpectedEthFromRedeem, readVethPaused } from "../lib/veth-read.js";
 import { formatAddress, resolveSigner } from "../lib/wallet.js";
 
 export function redeemCmd(program: Command) {
@@ -23,24 +25,12 @@ export function redeemCmd(program: Command) {
       ) => {
         const opts = program.opts();
 
-        let token: TokenInfo;
-        try {
-          token = resolveToken(opts.token);
-        } catch (e) {
-          return printError("INVALID_TOKEN", (e as Error).message, opts.json);
-        }
-        if (!token.evm) {
-          return printError(
-            "UNSUPPORTED_TOKEN",
-            `Redeem only supports vETH (EVM). ${token.id} is on Substrate chains.`,
-            opts.json,
-          );
+        const tokenErr = evmTokenError(opts, "Redeem");
+        if (tokenErr) {
+          return printError(tokenErr.code, tokenErr.message, opts.json);
         }
 
-        if (
-          Number.isNaN(Number.parseFloat(amount)) ||
-          Number.parseFloat(amount) <= 0
-        ) {
+        if (!isPositiveAmount(amount)) {
           return printError(
             "INVALID_AMOUNT",
             "Amount must be a positive number.",
@@ -48,22 +38,16 @@ export function redeemCmd(program: Command) {
           );
         }
 
-        let chain: ChainConfig;
-        try {
-          chain = resolveChain(opts);
-        } catch (e) {
-          return printError("INVALID_CHAIN", (e as Error).message, opts.json);
+        const chain = resolveChainOrError(opts);
+        if ("code" in chain) {
+          return printError(chain.code, chain.message, opts.json);
         }
 
         try {
           const client = getPublicClient(chain);
           const shares = parseEther(amount);
 
-          const paused = await client.readContract({
-            address: VETH_ADDRESS,
-            abi: vethAbi,
-            functionName: "paused",
-          });
+          const paused = await readVethPaused(client);
           if (paused) {
             return printError(
               "CONTRACT_PAUSED",
@@ -96,22 +80,7 @@ export function redeemCmd(program: Command) {
             );
           }
 
-          let expectedEth: bigint;
-          try {
-            expectedEth = await client.readContract({
-              address: VETH_ADDRESS,
-              abi: vethAbi,
-              functionName: "previewRedeem",
-              args: [shares],
-            });
-          } catch {
-            expectedEth = await client.readContract({
-              address: VETH_ADDRESS,
-              abi: vethAbi,
-              functionName: "convertToAssets",
-              args: [shares],
-            });
-          }
+          const expectedEth = await readExpectedEthFromRedeem(client, shares);
 
           if (signer.dryRun) {
             const data = encodeFunctionData({
@@ -160,7 +129,7 @@ export function redeemCmd(program: Command) {
                 "Redemption is NOT instant. ETH enters a processing queue.",
               from: formatAddress(signer.wallet.address),
               txHash,
-              explorer: `${chain.explorer}/tx/${txHash}`,
+              explorer: explorerTxUrl(chain, txHash),
             },
             opts.json,
           );
